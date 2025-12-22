@@ -1,4 +1,4 @@
-import { createExpense, deleteExpenseById, getExpensesByUserId } from "../services/expense.service.js";
+import { createExpense, deleteExpenseById, getExpensesByUserId, getExpenseSummaryByUserId, getMonthlyExpenseSummaryByUserId } from "../services/expense.service.js";
 
 export const createExpenseController = async (req, res) => {
     try {
@@ -80,9 +80,16 @@ export const deleteExpenseByIdController = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const expense = await deleteExpenseById(id);
+        if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Expense id is required",
+      });
+    }
 
-        if (!expense) {
+        const deleted = await deleteExpenseById(id);
+
+        if (!deleted) {
             return res.status(404).json({
                 success: false,
                 message: "Expense not found",
@@ -102,4 +109,65 @@ export const deleteExpenseByIdController = async (req, res) => {
             message: "Failed to delete expense",
         });
     }
+};
+
+export const getExpenseSummaryByUserIdController = async (req, res) => {
+    try {
+        const { userId, from, to } = req.query;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: "userId query param is required",
+            });
+        }
+
+        if ((from && !to) || (!from && to)) {
+            return res.status(400).json({
+                success: false,
+                message: "Both from and to dates are required",
+            });
+        }
+
+        const summary = await getExpenseSummaryByUserId(userId, from, to);
+
+        res.status(200).json({
+            success: true,
+            data: summary,
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch expense summary",
+        });
+    }
+};
+
+export const getMonthlyExpenseSummaryController = async (req, res) => {
+  try {
+    const { userId, year } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "userId query param is required",
+      });
+    }
+
+    const summary = await getMonthlyExpenseSummary(userId, year);
+
+    return res.status(200).json({
+      success: true,
+      data: summary,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch monthly expense summary",
+    });
+  }
 };

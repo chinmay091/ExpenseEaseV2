@@ -31,6 +31,16 @@ const Expense = sequelize.define(
       type: DataTypes.ENUM("credit", "debit"),
       allowNull: false,
     },
+    categoryId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "category_id",
+      references: {
+        model: "categories",
+        key: "id",
+        onDelete: "SET NULL",
+      },
+    },
   },
   {
     tableName: "expenses",
