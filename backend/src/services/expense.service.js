@@ -21,6 +21,24 @@ export const createExpense = async ({ userId, amount, description, type, categor
     return expense;
 };
 
+export const updateExpenseCategory = async (expenseId, categoryId) => {
+  const expense = await Expense.findByPk(expenseId);
+  if (!expense) return null;
+
+  if (categoryId) {
+    const category = await Category.findByPk(categoryId);
+    if (!category) {
+      throw new Error("CATEGORY_NOT_FOUND");
+    }
+  }
+
+  expense.categoryId = categoryId || null;
+  await expense.save();
+
+  return expense;
+};
+
+
 export const getExpensesByUserId = async (userId) => {
     const expenses = await Expense.findAll({
         where: { userId },
@@ -124,3 +142,43 @@ export const getMonthlyExpenseSummaryByUserId = async (userId, year) => {
     }));
 };
 
+export const getCategoryMonthlySummary = async (userId, year) => {
+    const whereClause = {
+        userId,
+        type: "debit",
+    }
+
+    if (year) {
+        whereClause.createdAt = {
+            [Op.between]: [
+                new Date(`${year}-01-01`),
+                new Date(`${year}-12-31`),
+            ],
+        };
+    }
+
+    const result = await Expense.findAll({
+        where: whereClause,
+        include: [
+            {
+                model: Category,
+                attributes: ["name"],
+            },
+        ],
+        attributes: [
+            [
+                fn("DATE_TRUNC", "month", col("Expense.createdAt")),
+                "month",
+            ],
+            [fn("SUM", col("Expense.amount")), "total"],
+        ],
+        group: ["month", "Category.id"],
+        order: [[literal("month"), "ASC"]],
+    });
+
+    return result.map((row) => ({
+        month: row.get("month").toISOString().slice(0, 7),
+        category: row.Category ? row.Category.name : "Uncategorized",
+        totalDebit: Number(row.get("total")),
+    }))
+}

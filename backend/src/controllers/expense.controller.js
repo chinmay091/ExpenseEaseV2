@@ -1,8 +1,16 @@
-import { createExpense, deleteExpenseById, getExpensesByUserId, getExpenseSummaryByUserId, getMonthlyExpenseSummaryByUserId } from "../services/expense.service.js";
+import {
+    createExpense,
+    updateExpenseCategory,
+    deleteExpenseById,
+    getExpensesByUserId,
+    getExpenseSummaryByUserId,
+    getMonthlyExpenseSummaryByUserId,
+    getCategoryMonthlySummary
+} from "../services/expense.service.js";
 
 export const createExpenseController = async (req, res) => {
     try {
-        const { userId, amount, description, type } = req.body;
+        const { userId, amount, description, type, categoryId } = req.body;
 
         if (!userId || !amount || !type) {
             return res.status(400).json({
@@ -25,7 +33,7 @@ export const createExpenseController = async (req, res) => {
             });
         }
 
-        const expense = await createExpense({ userId, amount, description, type });
+        const expense = await createExpense({ userId, amount, description, type, categoryId });
 
         if (!expense) {
             return res.status(500).json({
@@ -46,6 +54,47 @@ export const createExpenseController = async (req, res) => {
             message: "Failed to create expense",
         });
     }
+};
+
+export const updateExpenseCategoryController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { categoryId } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Expense id is required",
+      });
+    }
+
+    const expense = await updateExpenseCategory(id, categoryId);
+
+    if (!expense) {
+      return res.status(404).json({
+        success: false,
+        message: "Expense not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: expense,
+    });
+  } catch (error) {
+    if (error.message === "CATEGORY_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update expense category",
+    });
+  }
 };
 
 export const getExpensesByUserIdController = async (req, res) => {
@@ -156,7 +205,7 @@ export const getMonthlyExpenseSummaryController = async (req, res) => {
       });
     }
 
-    const summary = await getMonthlyExpenseSummary(userId, year);
+    const summary = await getMonthlyExpenseSummaryByUserId(userId, year);
 
     return res.status(200).json({
       success: true,
@@ -168,6 +217,32 @@ export const getMonthlyExpenseSummaryController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch monthly expense summary",
+    });
+  }
+};
+
+export const getCategoryMonthlySummaryController = async (req, res) => {
+  try {
+    const { userId, year } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "userId query param is required",
+      });
+    }
+
+    const summary = await getCategoryMonthlySummary(userId, year);
+
+    return res.status(200).json({
+      success: true,
+      data: summary,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch category monthly summary",
     });
   }
 };
