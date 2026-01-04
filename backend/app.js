@@ -8,6 +8,7 @@ import budgetRoutes from "./src/routes/budget.routes.js";
 import devRoutes from "./src/routes/dev.routes.js";
 import mlRoutes from "./src/routes/ml.routes.js";
 import authRoutes from "./src/routes/auth.routes.js";
+import goalRoutes from "./src/routes/goal.routes.js";
 import { authMiddleware } from "./src/middlewares/auth.middleware.js";
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/budgets", budgetRoutes);
+app.use("/api/goals", goalRoutes);
 app.use("/api/dev", devRoutes);
 app.use("/api/ml", mlRoutes);
 

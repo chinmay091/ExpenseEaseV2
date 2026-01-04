@@ -38,6 +38,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="goals"
+        options={{
+          title: 'Goals',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="star.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="add"
         options={{
           title: "Add",
@@ -48,3 +55,4 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+

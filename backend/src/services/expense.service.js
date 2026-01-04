@@ -1,5 +1,6 @@
 import { Expense, User, Category } from "../models/index.js";
 import { Op, fn, col, literal } from "sequelize";
+import { processAutoContribution } from "./goal.service.js";
 
 export const createExpense = async ({
   userId,
@@ -27,6 +28,19 @@ export const createExpense = async ({
     type,
     categoryId,
   });
+
+  // Auto-contribute to goals when income is added
+  if (type === "credit") {
+    try {
+      const contributions = await processAutoContribution(userId, amount, expense.id);
+      if (contributions.length > 0) {
+        console.log(`[EXPENSE] Auto-contributed to ${contributions.length} goals`);
+      }
+    } catch (err) {
+      console.error("[EXPENSE] Auto-contribution failed:", err.message);
+      // Don't fail the expense creation if auto-contribution fails
+    }
+  }
 
   return expense;
 };

@@ -4,6 +4,7 @@ import Expense from "./expense.model.js";
 import Category from "./category.model.js";
 import Budget from "./budget.model.js";
 import RefreshToken from "./refresh_token.model.js";
+import { Goal, GoalContribution } from "./goal.model.js";
 
 // Associations
 User.hasMany(Expense, { foreignKey: "userId", onDelete: "CASCADE" });
@@ -21,4 +22,10 @@ Budget.belongsTo(Category, { foreignKey: "categoryId" });
 User.hasMany(RefreshToken, { foreignKey: "userId", onDelete: "CASCADE" });
 RefreshToken.belongsTo(User, { foreignKey: "userId" });
 
-export { sequelize, User, Expense, Category, Budget, RefreshToken };
+// Goal associations
+User.hasMany(Goal, { foreignKey: "userId", onDelete: "CASCADE" });
+Goal.belongsTo(User, { foreignKey: "userId" });
+
+GoalContribution.belongsTo(Expense, { foreignKey: "expenseId" });
+
+export { sequelize, User, Expense, Category, Budget, RefreshToken, Goal, GoalContribution };
