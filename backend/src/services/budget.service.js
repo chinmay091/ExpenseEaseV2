@@ -1,7 +1,12 @@
 import { Budget, Category, Expense } from "../models/index.js";
-import { Op, fn, col } from "sequelize";
+import { Op, fn, col, literal } from "sequelize";
 import { getMlSignals } from "./mlClient.service.js";
 import { generateBudgetExplanationsBatch } from "./budgetExplanation.service.js";
+
+// Configuration constants
+const MIN_BUDGET_AMOUNT = 100; // Minimum budget threshold in INR
+const MAX_BUDGET_INCREASE = 1.25; // Max 25% increase from current
+const MAX_BUDGET_DECREASE = 0.85; // Max 15% decrease from current
 
 export const getBudgetsWithUsage = async (userId, month) => {
   const start = month
@@ -73,6 +78,86 @@ export const getBudgetsWithUsage = async (userId, month) => {
   });
 };
 
+/**
+ * Calculate weighted average with more weight on recent months
+ * @param {Array} history - Array of {month, amount} sorted from oldest to newest
+ * @returns {number} Weighted average
+ */
+const calculateWeightedAverage = (history) => {
+  if (!history.length) return 0;
+
+  // Sort by month descending (most recent first)
+  const sorted = [...history].sort((a, b) => b.month.localeCompare(a.month));
+
+  // Dynamic weights based on history length
+  // Most recent month gets highest weight, decreasing for older months
+  let totalWeight = 0;
+  let weightedSum = 0;
+
+  sorted.forEach((item, index) => {
+    // Weight decreases exponentially: 1, 0.7, 0.5, 0.35, 0.25...
+    const weight = Math.pow(0.7, index);
+    weightedSum += item.amount * weight;
+    totalWeight += weight;
+  });
+
+  return totalWeight > 0 ? weightedSum / totalWeight : 0;
+};
+
+/**
+ * Get monthly spending history for all categories in a single query (N+1 optimization)
+ */
+const getAllCategoryMonthlyHistory = async (userId, startDate, endDate) => {
+  const historyRows = await Expense.findAll({
+    where: {
+      userId,
+      type: "debit",
+      createdAt: {
+        [Op.gte]: startDate,
+        [Op.lt]: endDate,
+      },
+    },
+    attributes: [
+      [col("Expense.category_id"), "categoryId"],
+      [fn("DATE_TRUNC", "month", col("createdAt")), "month"],
+      [fn("SUM", col("amount")), "amount"],
+    ],
+    group: [col("Expense.category_id"), "month"],
+    order: [[literal("month"), "ASC"]],
+  });
+
+  // Group by category
+  const historyMap = {};
+  historyRows.forEach((row) => {
+    const categoryId = row.get("categoryId") || "uncategorized";
+    if (!historyMap[categoryId]) {
+      historyMap[categoryId] = [];
+    }
+    historyMap[categoryId].push({
+      month: row.get("month").toISOString().slice(0, 7),
+      amount: Number(row.get("amount")),
+    });
+  });
+
+  return historyMap;
+};
+
+/**
+ * Build a lookup map from categoryId to category name
+ */
+const getCategoryNameMap = async () => {
+  const categories = await Category.findAll({
+    attributes: ["id", "name"],
+  });
+
+  const nameMap = {};
+  categories.forEach((cat) => {
+    nameMap[cat.id] = cat.name;
+  });
+
+  return nameMap;
+};
+
 export const generateBudgetsForUser = async ({
   userId,
   months = 3,
@@ -85,6 +170,11 @@ export const generateBudgetsForUser = async ({
   console.log("[BUDGET_GEN] User:", userId);
   console.log("[BUDGET_GEN] Range:", startDate, "→", endDate);
 
+  // Fetch category names for human-readable explanations
+  const categoryNameMap = await getCategoryNameMap();
+  console.log("[BUDGET_GEN] Category names loaded:", Object.keys(categoryNameMap).length);
+
+  // Get total spending per category
   const spendRows = await Expense.findAll({
     where: {
       userId,
@@ -108,6 +198,10 @@ export const generateBudgetsForUser = async ({
     return [];
   }
 
+  // OPTIMIZATION: Fetch all monthly history in one query instead of N queries
+  const allCategoryHistory = await getAllCategoryMonthlyHistory(userId, startDate, endDate);
+  console.log("[BUDGET_GEN] Fetched history for categories:", Object.keys(allCategoryHistory).length);
+
   const existingBudgets = await Budget.findAll({
     where: {
       userId,
@@ -125,58 +219,60 @@ export const generateBudgetsForUser = async ({
 
   const results = [];
   const explanationInputs = [];
+  // Map to link category name back to categoryId for storing explanation
+  const categoryNameToIdMap = {};
 
   for (const row of spendRows) {
     const categoryId = row.get("categoryId");
     const key = categoryId || "uncategorized";
     const totalSpent = Number(row.get("totalSpent"));
 
-    console.log("[BUDGET_GEN] Category:", categoryId, "Total:", totalSpent);
+    // Get human-readable category name
+    const categoryName = categoryId ? (categoryNameMap[categoryId] || "Unknown") : "Uncategorized";
+    categoryNameToIdMap[categoryName] = categoryId;
 
-    const avgMonthly = totalSpent / months;
+    console.log("[BUDGET_GEN] Category:", categoryName, "(", categoryId, ") Total:", totalSpent);
+
+    // Get history from pre-fetched data (N+1 optimization)
+    const history = allCategoryHistory[key] || [];
+
+    // Use weighted average (more weight on recent months)
+    const avgMonthly = history.length > 0
+      ? calculateWeightedAverage(history)
+      : totalSpent / months;
+
+    // Base budget with buffer
     let suggested = avgMonthly * (1 + bufferPercent / 100);
 
-    const historyRows = await Expense.findAll({
-      where: {
-        userId,
-        type: "debit",
-        categoryId,
-        createdAt: {
-          [Op.gte]: startDate,
-          [Op.lt]: endDate,
-        },
-      },
-      attributes: [
-        [fn("DATE_TRUNC", "month", col("createdAt")), "month"],
-        [fn("SUM", col("amount")), "amount"],
-      ],
-      group: ["month"],
-      order: [[fn("DATE_TRUNC", "month", col("createdAt")), "ASC"]],
-    });
-
-    const history = historyRows.map((r) => ({
-      month: r.get("month").toISOString().slice(0, 7),
-      amount: Number(r.get("amount")),
-    }));
-
+    // Get ML signals for enhanced predictions
     const mlSignals = await getMlSignals({
       userId,
-      category: categoryId || "Uncategorized",
+      category: categoryName, // Use name instead of ID for ML
       history,
     });
 
     if (mlSignals) {
       const { predicted_spend, volatility_score, trend } = mlSignals;
 
-      suggested += avgMonthly * volatility_score * 0.1;
-      if (trend === "up") suggested += avgMonthly * 0.05;
-      if (trend === "down") suggested -= avgMonthly * 0.05;
+      // Enhanced volatility adjustment - higher volatility = more buffer
+      const volatilityMultiplier = volatility_score > 0.5 ? 0.2 : 0.1;
+      suggested += avgMonthly * volatility_score * volatilityMultiplier;
 
-      suggested = Math.max(suggested, predicted_spend * 0.9);
+      // Trend adjustments - more aggressive for uptrends
+      if (trend === "up") suggested *= 1.08;      // 8% increase for uptrend
+      if (trend === "down") suggested *= 0.95;    // 5% decrease for downtrend
+
+      // ML prediction anchor - trust ML if it suggests higher
+      suggested = Math.max(suggested, predicted_spend);
     }
 
+    // Apply minimum budget threshold
+    suggested = Math.max(suggested, MIN_BUDGET_AMOUNT);
+
+    // Use category NAME (not ID) for explanation inputs
     explanationInputs.push({
-      category: categoryId || "Uncategorized",
+      category: categoryName,  // Human-readable name
+      categoryId: categoryId,  // Keep ID for mapping back
       avgMonthlySpend: avgMonthly,
       suggestedBudget: suggested,
       mlUsed: Boolean(mlSignals),
@@ -188,12 +284,17 @@ export const generateBudgetsForUser = async ({
 
     const existing = budgetMap[key];
 
+    // Skip if user has manually set this budget
     if (existing && !existing.isAutoGenerated) continue;
 
     if (existing) {
       const current = Number(existing.monthlyLimit);
-      suggested = Math.min(suggested, current * 1.25);
-      suggested = Math.max(suggested, current * 0.9);
+      // Apply rate limiting to prevent wild swings
+      suggested = Math.min(suggested, current * MAX_BUDGET_INCREASE);  // Max +25%
+      suggested = Math.max(suggested, current * MAX_BUDGET_DECREASE);  // Max -15%
+
+      // Ensure minimum is still respected after rate limiting
+      suggested = Math.max(suggested, MIN_BUDGET_AMOUNT);
 
       existing.monthlyLimit = suggested.toFixed(2);
       existing.isAutoGenerated = true;
@@ -211,14 +312,19 @@ export const generateBudgetsForUser = async ({
     }
   }
 
+  // Generate explanations using category NAMES
   const explanations =
     explanationInputs.length > 0
       ? await generateBudgetExplanationsBatch(explanationInputs)
       : {};
 
+  console.log("[BUDGET_GEN] Explanations generated for:", Object.keys(explanations));
+
+  // Map explanations back to budgets using category name
   for (const budget of results) {
-    const key = budget.categoryId || "Uncategorized";
-    budget.explanation = explanations[key] ?? null;
+    // Find the category name for this budget
+    const categoryName = categoryNameMap[budget.categoryId] || "Uncategorized";
+    budget.explanation = explanations[categoryName] ?? null;
     await budget.save();
   }
 

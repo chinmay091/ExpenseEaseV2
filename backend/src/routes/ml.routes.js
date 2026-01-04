@@ -3,6 +3,6 @@ import { mlPredictController } from "../controllers/mlStub.controller.js";
 
 const router = Router();
 
-router.post("/ml/predict", mlPredictController);
+router.post("/predict", mlPredictController);
 
 export default router;

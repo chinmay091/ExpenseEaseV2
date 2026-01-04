@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
     createExpenseController,
-    updateExpenseCategoryController,
+    updateExpenseController,
     getExpensesByUserIdController,
     deleteExpenseByIdController,
     getExpenseSummaryByUserIdController,
@@ -11,13 +11,12 @@ import {
 
 const router = Router();
 
-router.post("/expenses", createExpenseController);
-router.patch("/expenses/:id/category", updateExpenseCategoryController);
-router.get("/expenses", getExpensesByUserIdController);
-router.delete("/expenses/:id", deleteExpenseByIdController);
-router.get("/expenses/summary", getExpenseSummaryByUserIdController);
-router.get("/expenses/monthly-summary", getMonthlyExpenseSummaryController);
-router.get("/expenses/category-monthly-summary", getCategoryMonthlySummaryController);
-
+router.post("/", createExpenseController);
+router.patch("/:id", updateExpenseController);
+router.get("/", getExpensesByUserIdController);
+router.delete("/:id", deleteExpenseByIdController);
+router.get("/summary", getExpenseSummaryByUserIdController);
+router.get("/monthly-summary", getMonthlyExpenseSummaryController);
+router.get("/category-monthly-summary", getCategoryMonthlySummaryController);
 
 export default router;

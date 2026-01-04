@@ -6,7 +6,7 @@ import {
 
 const router = Router();
 
-router.post("/categories", createCategoryController);
-router.get("/categories", getAllCategoriesController);
+router.post("/", createCategoryController);
+router.get("/", getAllCategoriesController);
 
 export default router;

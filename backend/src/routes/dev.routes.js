@@ -3,6 +3,6 @@ import { generateSyntheticExpensesController } from "../controllers/dev.controll
 
 const router = Router();
 
-router.post("/dev/generate-expenses", generateSyntheticExpensesController);
+router.post("/generate-expenses", generateSyntheticExpensesController);
 
 export default router;

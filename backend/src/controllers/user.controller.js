@@ -1,4 +1,11 @@
-import { createUser, deleteUserById, getAllUsers, getUserById } from "../services/user.service.js";
+import {
+    createUser,
+    deleteUserById,
+    getAllUsers,
+    getCurrentUser,
+    getUserById,
+    deleteCurrentUser,
+} from "../services/user.service.js";
 
 export const createUserController = async (req, res) => {
     try {
@@ -98,6 +105,42 @@ export const deleteUserByIdController = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Failed to delete user",
+        });
+    }
+};
+
+export const getCurrentUserController = async (req, res) => {
+    try {
+        const user = await getCurrentUser(req.user.id);
+
+        return res.status(200).json({
+            success: true,
+            data: user,
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(404).json({
+            success: false,
+            message: "User not found",
+        });
+    }
+};
+
+export const deleteCurrentUserController = async (req, res) => {
+    try {
+        await deleteCurrentUser(req.user.id);
+
+        return res.status(200).json({
+            success: true,
+            message: "User deleted successfully",
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(404).json({
+            success: false,
+            message: "User not found",
         });
     }
 };

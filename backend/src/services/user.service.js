@@ -28,3 +28,25 @@ export const deleteUserById = async (id) => {
   await user.destroy();
   return user;
 };
+
+export const getCurrentUser = async (userId) => {
+  const user = await User.findByPk(userId, {
+    attributes: ["id", "name", "email", "createdAt"],
+  });
+
+  if (!user) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  return user;
+}
+
+export const deleteCurrentUser = async (userId) => {
+  const user = await User.findByPk(userId);
+
+  if (!user) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  await user.destroy();
+};

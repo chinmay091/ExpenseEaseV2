@@ -3,9 +3,10 @@ import User from "./user.model.js";
 import Expense from "./expense.model.js";
 import Category from "./category.model.js";
 import Budget from "./budget.model.js";
+import RefreshToken from "./refresh_token.model.js";
 
 // Associations
-User.hasMany(Expense, { foreignKey: "userId", onDelete: "CASCADE"});
+User.hasMany(Expense, { foreignKey: "userId", onDelete: "CASCADE" });
 Expense.belongsTo(User, { foreignKey: "userId" });
 
 Category.hasMany(Expense, { foreignKey: "categoryId" });
@@ -16,4 +17,8 @@ Budget.belongsTo(User, { foreignKey: "userId" });
 Category.hasMany(Budget, { foreignKey: "categoryId" });
 Budget.belongsTo(Category, { foreignKey: "categoryId" });
 
-export { sequelize, User, Expense, Category, Budget };
+// RefreshToken associations
+User.hasMany(RefreshToken, { foreignKey: "userId", onDelete: "CASCADE" });
+RefreshToken.belongsTo(User, { foreignKey: "userId" });
+
+export { sequelize, User, Expense, Category, Budget, RefreshToken };

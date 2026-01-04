@@ -2,7 +2,8 @@ import { mlPredictStub } from "../services/mLStub.service.js";
 
 export const mlPredictController = async (req, res) => {
     try {
-        const { userId, category, currency, history } = req.body;
+        const userId = req.user.id;
+        const { category, currency, history } = req.body;
 
         if (!userId || !category || !currency || !Array.isArray(history)) {
             return res.status(400).json({
