@@ -22,6 +22,7 @@ import {
   Goal,
   CreateGoalPayload,
 } from "@/api/goal.api";
+import { useTheme } from "@/hooks/use-theme";
 
 const GOAL_COLORS = [
   "#4F46E5", // Indigo
@@ -36,6 +37,7 @@ const GOAL_COLORS = [
 const GOAL_ICONS = ["🎯", "✈️", "🏠", "🚗", "💍", "🎓", "💻", "🏖️", "💰", "🎁"];
 
 export default function GoalsScreen() {
+  const { colors, isDark } = useTheme();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -208,7 +210,7 @@ export default function GoalsScreen() {
 
     return (
       <TouchableOpacity
-        style={[styles.card, { borderLeftColor: item.color, borderLeftWidth: 4 }]}
+        style={[styles.card, { backgroundColor: colors.card, borderLeftColor: item.color, borderLeftWidth: 4 }]}
         onLongPress={() => handleDeleteGoal(item)}
         activeOpacity={0.8}
       >
@@ -216,9 +218,9 @@ export default function GoalsScreen() {
           <View style={styles.goalTitleRow}>
             <Text style={styles.goalIcon}>{item.icon}</Text>
             <View style={styles.goalTitleContainer}>
-              <Text style={styles.goalName}>{item.name}</Text>
+              <Text style={[styles.goalName, { color: colors.text }]}>{item.name}</Text>
               {item.autoSavePercent && (
-                <Text style={styles.autoSaveTag}>
+                <Text style={[styles.autoSaveTag, { color: colors.success }]}>
                   🔄 {item.autoSavePercent}% auto-save
                 </Text>
               )}
@@ -231,7 +233,7 @@ export default function GoalsScreen() {
           )}
         </View>
 
-        <View style={styles.progressSection}>
+        <View style={[styles.progressSection, { backgroundColor: colors.progressBg }]}>
           <View style={styles.progressContainer}>
             <View
               style={[
@@ -243,35 +245,35 @@ export default function GoalsScreen() {
               ]}
             />
           </View>
-          <Text style={styles.progressText}>{item.progress.toFixed(1)}%</Text>
+          <Text style={[styles.progressText, { color: colors.text }]}>{item.progress.toFixed(1)}%</Text>
         </View>
 
         <View style={styles.amountRow}>
-          <Text style={styles.currentAmount}>
+          <Text style={[styles.currentAmount, { color: colors.text }]}>
             {formatCurrency(item.currentAmount)}
           </Text>
-          <Text style={styles.targetAmount}>
+          <Text style={[styles.targetAmount, { color: colors.textSecondary }]}>
             / {formatCurrency(item.targetAmount)}
           </Text>
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statLabel}>Remaining</Text>
-            <Text style={styles.statValue}>{formatCurrency(item.remaining)}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Remaining</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{formatCurrency(item.remaining)}</Text>
           </View>
           {item.daysRemaining !== null && (
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Days Left</Text>
-              <Text style={[styles.statValue, item.daysRemaining < 30 && styles.urgent]}>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Days Left</Text>
+              <Text style={[styles.statValue, { color: colors.text }, item.daysRemaining < 30 && { color: colors.warning }]}>
                 {item.daysRemaining}
               </Text>
             </View>
           )}
           {item.monthlyRequired && (
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Monthly Need</Text>
-              <Text style={styles.statValue}>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Monthly Need</Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>
                 {formatCurrency(item.monthlyRequired)}
               </Text>
             </View>
@@ -292,18 +294,18 @@ export default function GoalsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Goals</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Goals</Text>
         <TouchableOpacity
-          style={styles.createButton}
+          style={[styles.createButton, { backgroundColor: colors.tint }]}
           onPress={() => setShowCreateModal(true)}
         >
           <Text style={styles.createButtonText}>+ New Goal</Text>
@@ -320,8 +322,8 @@ export default function GoalsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>🎯</Text>
-            <Text style={styles.emptyText}>No goals yet</Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptyText, { color: colors.text }]}>No goals yet</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
               Create your first savings goal and start tracking your progress
             </Text>
           </View>
@@ -339,13 +341,13 @@ export default function GoalsScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTitle}>Create New Goal</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Create New Goal</Text>
 
-              <Text style={styles.inputLabel}>Goal Name *</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Goal Name *</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.input, color: colors.text }]}
                 placeholder="e.g., Goa Trip 2025"
                 value={newGoal.name}
                 onChangeText={(text) => setNewGoal({ ...newGoal, name: text })}
@@ -508,14 +510,12 @@ export default function GoalsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     paddingTop: 60,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",

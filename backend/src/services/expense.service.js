@@ -8,6 +8,7 @@ export const createExpense = async ({
   description,
   type,
   categoryId,
+  skipDuplicate = false,
 }) => {
   const user = await User.findByPk(userId);
 
@@ -21,6 +22,26 @@ export const createExpense = async ({
     throw new Error("Category not found");
   }
 
+  if (skipDuplicate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const existingExpense = await Expense.findOne({
+      where: {
+        userId,
+        amount: parseFloat(amount),
+        type,
+        createdAt: {
+          [Op.gte]: today,
+        },
+      },
+    });
+
+    if (existingExpense) {
+      return { skipped: true, reason: 'duplicate' };
+    }
+  }
+
   const expense = await Expense.create({
     userId,
     amount,
@@ -29,7 +50,6 @@ export const createExpense = async ({
     categoryId,
   });
 
-  // Auto-contribute to goals when income is added
   if (type === "credit") {
     try {
       const contributions = await processAutoContribution(userId, amount, expense.id);
@@ -38,7 +58,6 @@ export const createExpense = async ({
       }
     } catch (err) {
       console.error("[EXPENSE] Auto-contribution failed:", err.message);
-      // Don't fail the expense creation if auto-contribution fails
     }
   }
 

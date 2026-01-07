@@ -20,12 +20,15 @@
     "cors": "^2.8.5",
     "cron": "^4.4.0",
     "dotenv": "^17.2.3",
+    "expo-server-sdk": "^4.0.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "langchain": "^1.2.3",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
+    "redis": "^5.10.0",
     "sequelize": "^6.37.7",
+    "tesseract.js": "^7.0.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {

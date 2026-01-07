@@ -5,6 +5,7 @@ export type CreateExpensePayload = {
   description?: string;
   type: "credit" | "debit";
   categoryId: string;
+  skipDuplicate?: boolean;
 };
 
 export type Expense = {
@@ -16,6 +17,13 @@ export type Expense = {
   createdAt: string;
 };
 
+export type CreateExpenseResponse = {
+  success: boolean;
+  data?: Expense;
+  skipped?: boolean;
+  message?: string;
+};
+
 export type UpdateExpensePayload = {
   amount: number;
   description: string;
@@ -25,7 +33,7 @@ export type UpdateExpensePayload = {
 
 export const createExpense = async (
   payload: CreateExpensePayload
-) => {
+): Promise<CreateExpenseResponse> => {
   const response = await api.post("/expenses", payload);
   return response.data;
 };

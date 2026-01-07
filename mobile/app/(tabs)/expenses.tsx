@@ -1,12 +1,13 @@
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet, FlatList, Alert, TouchableOpacity } from "react-native";
 import { useState, useEffect, useCallback } from "react";
 import { getExpenses, deleteExpense, Expense } from "@/api/expense.api";
-import { Alert, TouchableOpacity } from "react-native";
 import { getCategories, Category } from "@/api/category.api";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function ExpensesScreen() {
+  const { colors } = useTheme();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -20,13 +21,11 @@ export default function ExpensesScreen() {
     try {
       const data = await getExpenses();
       setExpenses(data);
-      console.log("Fetched expenses: ", data);
     } catch (error) {
       console.error("Failed to fetch expenses", error);
     }
   };
 
-  // Refetch expenses when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       fetchExpenses();
@@ -38,23 +37,17 @@ export default function ExpensesScreen() {
       try {
         const data = await getCategories();
         setCategories(data);
-        console.log("Fetched categories: ", data);
       } catch (error) {
         console.error("Failed to fetch categories", error);
       }
     };
-
     fetchcategories();
   }, []);
 
   const onRefresh = async () => {
-    try {
-      setRefreshing(true);
-      await fetchExpenses();
-      setRefreshing(false);
-    } catch (error) {
-      console.error(error);
-    }
+    setRefreshing(true);
+    await fetchExpenses();
+    setRefreshing(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -62,10 +55,7 @@ export default function ExpensesScreen() {
       "Delete Expense",
       "Are you sure? This action cannot be undone.",
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
@@ -74,7 +64,6 @@ export default function ExpensesScreen() {
               await deleteExpense(id);
               fetchExpenses();
             } catch (error) {
-              console.error(error);
               Alert.alert("Error", "Failed to delete expense.");
             }
           },
@@ -84,38 +73,47 @@ export default function ExpensesScreen() {
   };
 
   const handleEdit = (expense: Expense) => {
-  router.push({
-    pathname: "/(tabs)/add",
-    params: {
-      expenseId: expense.id,
-      amount: expense.amount,
-      description: expense.description ?? "",
-      type: expense.type,
-      categoryId: expense.categoryId ?? "",
-    },
-  });
-};
-
+    router.push({
+      pathname: "/(tabs)/add",
+      params: {
+        expenseId: expense.id,
+        amount: expense.amount,
+        description: expense.description ?? "",
+        type: expense.type,
+        categoryId: expense.categoryId ?? "",
+      },
+    });
+  };
 
   const renderItem = ({ item }: { item: Expense }) => {
+    const isCredit = item.type === "credit";
     return (
-      <View style={styles.item}>
-        <View style={styles.row}>
-          <Text style={styles.amount}>₹{item.amount}</Text>
-          <Text style={styles.description}>
-            {item.description || "No description"}
+      <View style={[styles.item, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+        <View style={styles.itemHeader}>
+          <Text style={[styles.amount, { color: isCredit ? colors.success : colors.text }]}>
+            {isCredit ? "+" : "-"}₹{item.amount}
           </Text>
-          <Text style={styles.meta}>{item.type.toUpperCase()}</Text>
-          <Text style={styles.meta}>
-            {categorymap[item.categoryId ?? ""] ?? "Uncategorized"} -{" "}
-            {item.type.toUpperCase()}
-          </Text>
-          <TouchableOpacity onPress={() => handleEdit(item)}>
-            <Text style={styles.edit}>Edit</Text>
-          </TouchableOpacity>
+          <View style={[styles.typeBadge, { backgroundColor: isCredit ? colors.success + "20" : colors.error + "20" }]}>
+            <Text style={[styles.typeText, { color: isCredit ? colors.success : colors.error }]}>
+              {item.type.toUpperCase()}
+            </Text>
+          </View>
+        </View>
+        
+        <Text style={[styles.description, { color: colors.text }]}>
+          {item.description || "No description"}
+        </Text>
+        
+        <Text style={[styles.category, { color: colors.textSecondary }]}>
+          {categorymap[item.categoryId ?? ""] ?? "Uncategorized"}
+        </Text>
 
-          <TouchableOpacity onPress={() => handleDelete(item.id)}>
-            <Text style={styles.delete}>Delete</Text>
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionBtn}>
+            <Text style={[styles.editText, { color: colors.tint }]}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionBtn}>
+            <Text style={[styles.deleteText, { color: colors.error }]}>Delete</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -123,8 +121,8 @@ export default function ExpensesScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Expense Screen</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.title, { color: colors.text }]}>Expenses</Text>
 
       <FlatList
         data={expenses}
@@ -132,7 +130,10 @@ export default function ExpensesScreen() {
         renderItem={renderItem}
         refreshing={refreshing}
         onRefresh={onRefresh}
-        ListEmptyComponent={<Text style={styles.empty}>No expenses found</Text>}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <Text style={[styles.empty, { color: colors.textSecondary }]}>No expenses found</Text>
+        }
       />
     </View>
   );
@@ -141,56 +142,68 @@ export default function ExpensesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    padding: 16,
     paddingTop: 60,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: 28,
+    fontWeight: "700",
+    paddingHorizontal: 16,
     marginBottom: 16,
   },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+  },
   item: {
-    borderWidth: 1,
-    borderColor: "#eee",
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 14,
-    marginBottom: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+  },
+  itemHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
   },
   amount: {
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  typeText: {
+    fontSize: 11,
     fontWeight: "600",
-    color: "#000",
   },
   description: {
-    fontSize: 14,
-    color: "#555",
-    marginTop: 4,
+    fontSize: 15,
+    marginBottom: 4,
   },
-  meta: {
-    fontSize: 12,
-    color: "#999",
-    marginTop: 6,
+  category: {
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  actionBtn: {
+    paddingVertical: 4,
+  },
+  editText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  deleteText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   empty: {
     textAlign: "center",
     marginTop: 40,
-    color: "#888",
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  delete: {
-    color: "#ff3b30",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  edit: {
-  color: "#007AFF",
-  fontSize: 14,
-  fontWeight: "600",
-  marginRight: 12,
-},
 });

@@ -1,21 +1,12 @@
 import { Goal, GoalContribution, Expense } from "../models/index.js";
 import { Op } from "sequelize";
 
-/**
- * Validate and parse deadline date
- * Returns null if invalid or empty
- */
 const parseDeadline = (deadline) => {
     if (!deadline || typeof deadline !== "string") return null;
-
-    // Check if it matches YYYY-MM-DD format
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(deadline.trim())) return null;
-
-    // Verify it's a valid date
     const date = new Date(deadline);
     if (isNaN(date.getTime())) return null;
-
     return deadline.trim();
 };
 
@@ -39,7 +30,6 @@ export const createGoal = async ({
         icon: icon || "🎯",
         color: color || "#4F46E5",
     });
-
     return goal;
 };
 
@@ -102,7 +92,6 @@ export const updateGoal = async (goalId, userId, updates) => {
         }
     }
 
-    // Check if goal is now completed
     if (Number(goal.currentAmount) >= Number(goal.targetAmount) && goal.status === "active") {
         goal.status = "completed";
         goal.completedAt = new Date();
@@ -116,7 +105,6 @@ export const deleteGoal = async (goalId, userId) => {
     const deleted = await Goal.destroy({
         where: { id: goalId, userId },
     });
-
     return deleted > 0;
 };
 
@@ -134,10 +122,8 @@ export const addContribution = async (goalId, userId, { amount, note }) => {
         isAutomatic: false,
     });
 
-    // Update goal's current amount
     goal.currentAmount = Number(goal.currentAmount) + Number(amount);
 
-    // Check if goal is now completed
     if (Number(goal.currentAmount) >= Number(goal.targetAmount)) {
         goal.status = "completed";
         goal.completedAt = new Date();
@@ -153,7 +139,6 @@ export const addContribution = async (goalId, userId, { amount, note }) => {
 };
 
 export const getContributions = async (goalId, userId, { limit = 50, offset = 0 } = {}) => {
-    // Verify goal belongs to user
     const goal = await Goal.findOne({
         where: { id: goalId, userId },
         attributes: ["id"],
@@ -172,7 +157,6 @@ export const getContributions = async (goalId, userId, { limit = 50, offset = 0 
 };
 
 export const processAutoContribution = async (userId, incomeAmount, expenseId) => {
-    // Find active goals with auto-save enabled
     const goals = await Goal.findAll({
         where: {
             userId,
@@ -199,10 +183,8 @@ export const processAutoContribution = async (userId, incomeAmount, expenseId) =
             expenseId,
         });
 
-        // Update goal's current amount
         goal.currentAmount = Number(goal.currentAmount) + contributionAmount;
 
-        // Check if goal is now completed
         if (Number(goal.currentAmount) >= Number(goal.targetAmount)) {
             goal.status = "completed";
             goal.completedAt = new Date();
@@ -221,9 +203,6 @@ export const processAutoContribution = async (userId, incomeAmount, expenseId) =
 };
 
 export const autoContributeToGoals = async (userId) => {
-    // This is a placeholder for the cron job
-    // In practice, auto-contributions happen in real-time via processAutoContribution
-    // This function can be used to reconcile any missed contributions
     console.log(`[GOAL] Auto-contribution check for user ${userId}`);
     return [];
 };
@@ -233,7 +212,6 @@ const formatGoalWithProgress = (goal) => {
     const target = Number(goal.targetAmount);
     const progress = target > 0 ? (current / target) * 100 : 0;
 
-    // Calculate days remaining
     let daysRemaining = null;
     if (goal.deadline) {
         const today = new Date();
@@ -241,7 +219,6 @@ const formatGoalWithProgress = (goal) => {
         daysRemaining = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
     }
 
-    // Calculate required monthly saving to meet deadline
     let monthlyRequired = null;
     if (goal.deadline && goal.status === "active" && daysRemaining > 0) {
         const remaining = target - current;
@@ -262,7 +239,6 @@ const formatGoalWithProgress = (goal) => {
         color: goal.color,
         completedAt: goal.completedAt,
         createdAt: goal.createdAt,
-        // Computed fields
         progress: Number(progress.toFixed(2)),
         remaining: Math.max(target - current, 0),
         daysRemaining,

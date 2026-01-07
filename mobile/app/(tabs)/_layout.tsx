@@ -13,46 +13,73 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: Colors[colorScheme ?? 'light'].card,
+          borderTopColor: Colors[colorScheme ?? 'light'].cardBorder,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="expenses"
         options={{
           title: 'Expenses',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="dollarsign.circle.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="list.bullet.rectangle.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="insights"
+        options={{
+          title: 'Insights',
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="chart.bar.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="ellipsis.circle.fill" color={color} />,
+        }}
+      />
+      {/* Hidden screens - still accessible via navigation but not in tab bar */}
+      <Tabs.Screen
+        name="add"
+        options={{
+          href: null, // Hide from tab bar
         }}
       />
       <Tabs.Screen
         name="budgets"
         options={{
-          title: 'Budgets',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="creditcard.fill" color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="goals"
         options={{
-          title: 'Goals',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="star.fill" color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
-        name="add"
+        name="chat"
         options={{
-          title: "Add",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
-        }
-        }
-        />
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="scan"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
-

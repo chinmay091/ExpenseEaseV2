@@ -2,11 +2,12 @@ import { View, Text, StyleSheet, TextInput, Alert, TouchableOpacity } from "reac
 import { useState, useEffect } from "react";
 import { Picker } from "@react-native-picker/picker";
 import { useLocalSearchParams } from "expo-router";
-
 import { createExpense, updateExpense } from "@/api/expense.api";
 import { getCategories, Category } from "@/api/category.api";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function AddExpenseScreen() {
+  const { colors, isDark } = useTheme();
   const params = useLocalSearchParams();
   const isEdit = Boolean(params.expenseId);
 
@@ -16,9 +17,6 @@ export default function AddExpenseScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
-  /**
-   * Prefill form in edit mode
-   */
   useEffect(() => {
     if (isEdit) {
       setAmount(String(params.amount ?? ""));
@@ -28,9 +26,6 @@ export default function AddExpenseScreen() {
     }
   }, [isEdit]);
 
-  /**
-   * Fetch categories
-   */
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -40,13 +35,9 @@ export default function AddExpenseScreen() {
         console.error("Failed to fetch categories", error);
       }
     };
-
     fetchCategories();
   }, []);
 
-  /**
-   * Submit handler (Add or Edit)
-   */
   const handleSubmit = async () => {
     if (!amount) {
       Alert.alert("Error", "Please enter an amount.");
@@ -66,7 +57,6 @@ export default function AddExpenseScreen() {
           type,
           categoryId: selectedCategoryId,
         });
-
         Alert.alert("Success", "Expense updated successfully.");
       } else {
         await createExpense({
@@ -75,81 +65,95 @@ export default function AddExpenseScreen() {
           type,
           categoryId: selectedCategoryId,
         });
-
         Alert.alert("Success", "Expense added successfully.");
-
-        // Reset only in add mode
         setAmount("");
         setDescription("");
         setSelectedCategoryId(null);
         setType("debit");
       }
     } catch (error) {
-      console.error(error);
       Alert.alert("Error", "Failed to save expense.");
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.title, { color: colors.text }]}>
         {isEdit ? "Edit Expense" : "Add Expense"}
       </Text>
 
-      <Text style={styles.label}>Amount</Text>
+      <Text style={[styles.label, { color: colors.textSecondary }]}>Amount</Text>
       <TextInput
         placeholder="Enter amount"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.textSecondary}
         keyboardType="numeric"
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.input, borderColor: colors.cardBorder, color: colors.text }]}
         value={amount}
         onChangeText={setAmount}
       />
 
-      <Text style={styles.label}>Description</Text>
+      <Text style={[styles.label, { color: colors.textSecondary }]}>Description</Text>
       <TextInput
         placeholder="Enter description"
-        placeholderTextColor="#999"
-        style={styles.input}
+        placeholderTextColor={colors.textSecondary}
+        style={[styles.input, { backgroundColor: colors.input, borderColor: colors.cardBorder, color: colors.text }]}
         value={description}
         onChangeText={setDescription}
       />
 
-      <Text style={styles.label}>Type</Text>
+      <Text style={[styles.label, { color: colors.textSecondary }]}>Type</Text>
       <View style={styles.typeRow}>
-        <Text
-          style={[styles.typeButton, type === "debit" && styles.activeDebit]}
+        <TouchableOpacity
+          style={[
+            styles.typeButton, 
+            { borderColor: colors.cardBorder },
+            type === "debit" && { backgroundColor: colors.error + "20", borderColor: colors.error }
+          ]}
           onPress={() => setType("debit")}
         >
-          Debit
-        </Text>
+          <Text style={[styles.typeText, { color: type === "debit" ? colors.error : colors.text }]}>
+            Debit
+          </Text>
+        </TouchableOpacity>
 
-        <Text
-          style={[styles.typeButton, type === "credit" && styles.activeCredit]}
+        <TouchableOpacity
+          style={[
+            styles.typeButton, 
+            { borderColor: colors.cardBorder },
+            type === "credit" && { backgroundColor: colors.success + "20", borderColor: colors.success }
+          ]}
           onPress={() => setType("credit")}
         >
-          Credit
-        </Text>
+          <Text style={[styles.typeText, { color: type === "credit" ? colors.success : colors.text }]}>
+            Credit
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      <Text style={styles.label}>Category</Text>
-      <View style={styles.pickerWrapper}>
+      <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
+      <View style={[styles.pickerWrapper, { backgroundColor: colors.input, borderColor: colors.cardBorder }]}>
         <Picker
           selectedValue={selectedCategoryId}
           onValueChange={(value) => setSelectedCategoryId(value)}
+          style={{ color: colors.text }}
+          dropdownIconColor={colors.textSecondary}
         >
-          <Picker.Item label="Select category" value={null} />
+          <Picker.Item label="Select category" value={null} color={isDark ? "#888" : "#999"} />
           {categories.map((category) => (
             <Picker.Item
               key={category.id}
               label={category.name}
               value={category.id}
+              color={isDark ? "#fff" : "#000"}
             />
           ))}
         </Picker>
       </View>
 
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+      <TouchableOpacity 
+        style={[styles.submitButton, { backgroundColor: colors.tint }]} 
+        onPress={handleSubmit}
+      >
         <Text style={styles.submitText}>
           {isEdit ? "Update Expense" : "Add Expense"}
         </Text>
@@ -158,72 +162,59 @@ export default function AddExpenseScreen() {
   );
 }
 
-/**
- * Styles
- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     padding: 16,
     paddingTop: 60,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: 28,
+    fontWeight: "700",
     marginBottom: 24,
   },
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#555",
     marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 10,
+    padding: 14,
     marginBottom: 20,
-    color: "#000",
+    fontSize: 16,
   },
   typeRow: {
     flexDirection: "row",
     marginBottom: 24,
+    gap: 10,
   },
   typeButton: {
     flex: 1,
-    textAlign: "center",
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    marginRight: 8,
-    color: "#000",
-  },
-  activeDebit: {
-    backgroundColor: "#ffe5e5",
-    borderColor: "#ff6b6b",
-  },
-  activeCredit: {
-    backgroundColor: "#e5fff0",
-    borderColor: "#2ecc71",
-  },
-  submitButton: {
-    backgroundColor: "#111",
     paddingVertical: 14,
+    borderWidth: 1,
     borderRadius: 10,
     alignItems: "center",
+  },
+  typeText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  submitButton: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 10,
   },
   submitText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   pickerWrapper: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 20,
     overflow: "hidden",
   },

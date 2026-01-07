@@ -11,7 +11,7 @@ import {
 export const createExpenseController = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { amount, description, type, categoryId } = req.body;
+    const { amount, description, type, categoryId, skipDuplicate } = req.body;
 
     if (!amount || !type) {
       return res.status(400).json({
@@ -34,15 +34,25 @@ export const createExpenseController = async (req, res) => {
       });
     }
 
-    const expense = await createExpense({
+    const result = await createExpense({
       userId,
       amount,
       description,
       type,
       categoryId,
+      skipDuplicate: skipDuplicate === true,
     });
 
-    if (!expense) {
+    // Check if duplicate was skipped
+    if (result && result.skipped) {
+      return res.status(200).json({
+        success: true,
+        skipped: true,
+        message: "Duplicate expense found - skipped",
+      });
+    }
+
+    if (!result) {
       return res.status(500).json({
         success: false,
         message: "User not found",
@@ -51,7 +61,7 @@ export const createExpenseController = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: expense,
+      data: result,
     });
   } catch (error) {
     console.error(error);

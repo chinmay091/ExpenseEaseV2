@@ -1,41 +1,66 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const primaryLight = '#284D63';
+const secondaryLight = '#81BFC3';
+const primaryDark = '#81BFC3';
+const secondaryDark = '#284D63';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
+    primary: primaryLight,
+    secondary: secondaryLight,
+    tint: primaryLight,
+    text: '#465C4F',
+    textSecondary: '#B4B4B4',
+    background: '#FFFFFF',
+    card: '#F8FAFB',
+    cardBorder: '#E5E7EB',
+    input: '#F3F4F6',
+    inputBorder: '#E5E7EB',
+    income: '#15803D',
+    expense: '#0369A1',
+    success: '#15803D',
+    warning: '#D97706',
+    error: '#B91C1C',
     icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    tabIconDefault: '#B4B4B4',
+    tabIconSelected: primaryLight,
+    progressBg: '#E5E7EB',
+    overlay: 'rgba(0, 0, 0, 0.3)',
+    fab: primaryLight,
+    fabIcon: '#FFFFFF',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    primary: primaryDark,
+    secondary: secondaryDark,
+    tint: primaryDark,
+    text: '#F8FAFB',
+    textSecondary: '#9CA3AF',
+    background: '#0F1419',
+    card: '#1A2332',
+    cardBorder: '#2D3B4F',
+    input: '#1A2332',
+    inputBorder: '#2D3B4F',
+    income: '#4ADE80',
+    expense: '#38BDF8',
+    success: '#4ADE80',
+    warning: '#FBBF24',
+    error: '#F87171',
+    icon: '#9CA3AF',
+    tabIconDefault: '#6B7280',
+    tabIconSelected: primaryDark,
+    progressBg: '#2D3B4F',
+    overlay: 'rgba(0, 0, 0, 0.6)',
+    fab: primaryDark,
+    fabIcon: '#0F1419',
   },
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
@@ -51,3 +76,20 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+};
+
+export const BorderRadius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  full: 9999,
+};

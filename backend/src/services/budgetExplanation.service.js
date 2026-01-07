@@ -7,7 +7,7 @@ import {
 const LLM_ENABLED = process.env.LLM_ENABLED === "true";
 
 const llm = new ChatGoogleGenerativeAI({
-  model: "gemini-2.0-flash-lite",
+  model: "gemini-1.5-flash",
   temperature: 0.4,
   apiKey: process.env.GOOGLE_API_KEY,
   maxRetries: 1,
@@ -47,9 +47,6 @@ EXAMPLES of good insights:
 Generate insights now:`,
 });
 
-/**
- * Generate smart fallback explanations when LLM is disabled
- */
 const generateSmartFallback = (inputs) => {
   const fallback = {};
 
@@ -87,7 +84,6 @@ export const generateBudgetExplanationsBatch = async (inputs, currency = "INR") 
 
   const chain = batchExplanationPrompt.pipe(llm);
 
-  // Enhanced payload with more context for the LLM
   const payload = JSON.stringify(
     validated.map((b) => ({
       category: b.category,
@@ -111,7 +107,6 @@ export const generateBudgetExplanationsBatch = async (inputs, currency = "INR") 
       currency: currencySymbol
     });
 
-    // Clean response - remove any accidental markdown
     let content = response.content;
     content = content.replace(/```json\s*/g, "").replace(/```\s*/g, "");
     content = content.trim();
@@ -119,14 +114,10 @@ export const generateBudgetExplanationsBatch = async (inputs, currency = "INR") 
     return JSON.parse(content);
   } catch (err) {
     console.error("Budget explanation generation failed:", err.message);
-    // Return smart fallback on error
     return generateSmartFallback(inputs);
   }
 };
 
-/**
- * Generate a single holistic financial summary (optional - for dashboard)
- */
 export const generateFinancialSummary = async (budgetData, totalIncome = null) => {
   if (!LLM_ENABLED) {
     return "Your budgets are set based on your recent spending patterns. Review each category for detailed insights.";

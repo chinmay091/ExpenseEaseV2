@@ -2,8 +2,10 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndi
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { getBudgets, generateBudgets, Budget } from "@/api/budget.api";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function BudgetsScreen() {
+  const { colors } = useTheme();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -57,9 +59,9 @@ export default function BudgetsScreen() {
   };
 
   const getProgressColor = (percent: number) => {
-    if (percent >= 90) return "#ff3b30";
-    if (percent >= 60) return "#ff9500";
-    return "#34c759";
+    if (percent >= 90) return colors.error;
+    if (percent >= 60) return colors.warning;
+    return colors.success;
   };
 
   const toggleExpand = (id: string) => {
@@ -72,16 +74,16 @@ export default function BudgetsScreen() {
 
     return (
       <TouchableOpacity 
-        style={styles.card} 
+        style={[styles.card, { backgroundColor: colors.card }]} 
         onPress={() => item.explanation && toggleExpand(item.budgetId)}
         activeOpacity={item.explanation ? 0.7 : 1}
       >
         <View style={styles.cardHeader}>
-          <Text style={styles.category}>{item.category}</Text>
-          <Text style={styles.usagePercent}>{item.usagePercent}%</Text>
+          <Text style={[styles.category, { color: colors.text }]}>{item.category}</Text>
+          <Text style={[styles.usagePercent, { color: colors.textSecondary }]}>{item.usagePercent}%</Text>
         </View>
 
-        <View style={styles.progressContainer}>
+        <View style={[styles.progressContainer, { backgroundColor: colors.progressBg }]}>
           <View 
             style={[
               styles.progressBar, 
@@ -91,8 +93,8 @@ export default function BudgetsScreen() {
         </View>
 
         <View style={styles.amountRow}>
-          <Text style={styles.spent}>₹{item.spent.toLocaleString()}</Text>
-          <Text style={styles.limit}>/ ₹{item.monthlyLimit.toLocaleString()}</Text>
+          <Text style={[styles.spent, { color: colors.text }]}>₹{item.spent.toLocaleString()}</Text>
+          <Text style={[styles.limit, { color: colors.textSecondary }]}>/ ₹{item.monthlyLimit.toLocaleString()}</Text>
         </View>
 
         <Text style={[styles.remaining, { color: progressColor }]}>
@@ -100,15 +102,15 @@ export default function BudgetsScreen() {
         </Text>
 
         {item.explanation && (
-          <Text style={styles.expandHint}>
+          <Text style={[styles.expandHint, { color: colors.tint }]}>
             {isExpanded ? "Tap to collapse" : "Tap for AI insights"}
           </Text>
         )}
 
         {isExpanded && item.explanation && (
-          <View style={styles.explanationContainer}>
-            <Text style={styles.explanationTitle}>💡 AI Insights</Text>
-            <Text style={styles.explanation}>{item.explanation}</Text>
+          <View style={[styles.explanationContainer, { borderTopColor: colors.cardBorder }]}>
+            <Text style={[styles.explanationTitle, { color: colors.text }]}>💡 AI Insights</Text>
+            <Text style={[styles.explanation, { color: colors.textSecondary }]}>{item.explanation}</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -116,11 +118,11 @@ export default function BudgetsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Budgets</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Budgets</Text>
         <TouchableOpacity 
-          style={[styles.generateButton, generating && styles.buttonDisabled]}
+          style={[styles.generateButton, { backgroundColor: colors.tint }, generating && styles.buttonDisabled]}
           onPress={handleGenerateBudgets}
           disabled={generating}
         >
@@ -141,8 +143,8 @@ export default function BudgetsScreen() {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No budgets yet</Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptyText, { color: colors.text }]}>No budgets yet</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
               Tap "Generate" to create smart budgets based on your spending
             </Text>
           </View>
@@ -155,7 +157,6 @@ export default function BudgetsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     paddingTop: 60,
   },
   header: {
@@ -168,16 +169,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#11181C",
   },
   generateButton: {
-    backgroundColor: "#0a7ea4",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
   },
   buttonDisabled: {
-    backgroundColor: "#888",
+    opacity: 0.6,
   },
   generateButtonText: {
     color: "#fff",
@@ -189,7 +188,6 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   card: {
-    backgroundColor: "#f8f9fa",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -203,16 +201,13 @@ const styles = StyleSheet.create({
   category: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#11181C",
   },
   usagePercent: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#687076",
   },
   progressContainer: {
     height: 8,
-    backgroundColor: "#e0e0e0",
     borderRadius: 4,
     overflow: "hidden",
     marginBottom: 12,
@@ -229,11 +224,9 @@ const styles = StyleSheet.create({
   spent: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#11181C",
   },
   limit: {
     fontSize: 16,
-    color: "#687076",
     marginLeft: 4,
   },
   remaining: {
@@ -242,7 +235,6 @@ const styles = StyleSheet.create({
   },
   expandHint: {
     fontSize: 12,
-    color: "#0a7ea4",
     marginTop: 8,
     textAlign: "center",
   },
@@ -250,17 +242,14 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
   },
   explanationTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#11181C",
     marginBottom: 6,
   },
   explanation: {
     fontSize: 13,
-    color: "#687076",
     lineHeight: 18,
   },
   emptyContainer: {
@@ -270,12 +259,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#11181C",
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#687076",
     textAlign: "center",
     paddingHorizontal: 32,
   },

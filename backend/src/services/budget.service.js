@@ -3,10 +3,9 @@ import { Op, fn, col, literal } from "sequelize";
 import { getMlSignals } from "./mlClient.service.js";
 import { generateBudgetExplanationsBatch } from "./budgetExplanation.service.js";
 
-// Configuration constants
-const MIN_BUDGET_AMOUNT = 100; // Minimum budget threshold in INR
-const MAX_BUDGET_INCREASE = 1.25; // Max 25% increase from current
-const MAX_BUDGET_DECREASE = 0.85; // Max 15% decrease from current
+const MIN_BUDGET_AMOUNT = 100;
+const MAX_BUDGET_INCREASE = 1.25;
+const MAX_BUDGET_DECREASE = 0.85;
 
 export const getBudgetsWithUsage = async (userId, month) => {
   const start = month
@@ -78,24 +77,15 @@ export const getBudgetsWithUsage = async (userId, month) => {
   });
 };
 
-/**
- * Calculate weighted average with more weight on recent months
- * @param {Array} history - Array of {month, amount} sorted from oldest to newest
- * @returns {number} Weighted average
- */
 const calculateWeightedAverage = (history) => {
   if (!history.length) return 0;
 
-  // Sort by month descending (most recent first)
   const sorted = [...history].sort((a, b) => b.month.localeCompare(a.month));
 
-  // Dynamic weights based on history length
-  // Most recent month gets highest weight, decreasing for older months
   let totalWeight = 0;
   let weightedSum = 0;
 
   sorted.forEach((item, index) => {
-    // Weight decreases exponentially: 1, 0.7, 0.5, 0.35, 0.25...
     const weight = Math.pow(0.7, index);
     weightedSum += item.amount * weight;
     totalWeight += weight;
@@ -104,9 +94,6 @@ const calculateWeightedAverage = (history) => {
   return totalWeight > 0 ? weightedSum / totalWeight : 0;
 };
 
-/**
- * Get monthly spending history for all categories in a single query (N+1 optimization)
- */
 const getAllCategoryMonthlyHistory = async (userId, startDate, endDate) => {
   const historyRows = await Expense.findAll({
     where: {
@@ -126,7 +113,6 @@ const getAllCategoryMonthlyHistory = async (userId, startDate, endDate) => {
     order: [[literal("month"), "ASC"]],
   });
 
-  // Group by category
   const historyMap = {};
   historyRows.forEach((row) => {
     const categoryId = row.get("categoryId") || "uncategorized";
@@ -142,9 +128,6 @@ const getAllCategoryMonthlyHistory = async (userId, startDate, endDate) => {
   return historyMap;
 };
 
-/**
- * Build a lookup map from categoryId to category name
- */
 const getCategoryNameMap = async () => {
   const categories = await Category.findAll({
     attributes: ["id", "name"],
@@ -170,11 +153,9 @@ export const generateBudgetsForUser = async ({
   console.log("[BUDGET_GEN] User:", userId);
   console.log("[BUDGET_GEN] Range:", startDate, "→", endDate);
 
-  // Fetch category names for human-readable explanations
   const categoryNameMap = await getCategoryNameMap();
   console.log("[BUDGET_GEN] Category names loaded:", Object.keys(categoryNameMap).length);
 
-  // Get total spending per category
   const spendRows = await Expense.findAll({
     where: {
       userId,
@@ -198,7 +179,6 @@ export const generateBudgetsForUser = async ({
     return [];
   }
 
-  // OPTIMIZATION: Fetch all monthly history in one query instead of N queries
   const allCategoryHistory = await getAllCategoryMonthlyHistory(userId, startDate, endDate);
   console.log("[BUDGET_GEN] Fetched history for categories:", Object.keys(allCategoryHistory).length);
 
@@ -219,7 +199,6 @@ export const generateBudgetsForUser = async ({
 
   const results = [];
   const explanationInputs = [];
-  // Map to link category name back to categoryId for storing explanation
   const categoryNameToIdMap = {};
 
   for (const row of spendRows) {
@@ -227,52 +206,42 @@ export const generateBudgetsForUser = async ({
     const key = categoryId || "uncategorized";
     const totalSpent = Number(row.get("totalSpent"));
 
-    // Get human-readable category name
     const categoryName = categoryId ? (categoryNameMap[categoryId] || "Unknown") : "Uncategorized";
     categoryNameToIdMap[categoryName] = categoryId;
 
     console.log("[BUDGET_GEN] Category:", categoryName, "(", categoryId, ") Total:", totalSpent);
 
-    // Get history from pre-fetched data (N+1 optimization)
     const history = allCategoryHistory[key] || [];
 
-    // Use weighted average (more weight on recent months)
     const avgMonthly = history.length > 0
       ? calculateWeightedAverage(history)
       : totalSpent / months;
 
-    // Base budget with buffer
     let suggested = avgMonthly * (1 + bufferPercent / 100);
 
-    // Get ML signals for enhanced predictions
     const mlSignals = await getMlSignals({
       userId,
-      category: categoryName, // Use name instead of ID for ML
+      category: categoryName,
       history,
     });
 
     if (mlSignals) {
       const { predicted_spend, volatility_score, trend } = mlSignals;
 
-      // Enhanced volatility adjustment - higher volatility = more buffer
       const volatilityMultiplier = volatility_score > 0.5 ? 0.2 : 0.1;
       suggested += avgMonthly * volatility_score * volatilityMultiplier;
 
-      // Trend adjustments - more aggressive for uptrends
-      if (trend === "up") suggested *= 1.08;      // 8% increase for uptrend
-      if (trend === "down") suggested *= 0.95;    // 5% decrease for downtrend
+      if (trend === "up") suggested *= 1.08;
+      if (trend === "down") suggested *= 0.95;
 
-      // ML prediction anchor - trust ML if it suggests higher
       suggested = Math.max(suggested, predicted_spend);
     }
 
-    // Apply minimum budget threshold
     suggested = Math.max(suggested, MIN_BUDGET_AMOUNT);
 
-    // Use category NAME (not ID) for explanation inputs
     explanationInputs.push({
-      category: categoryName,  // Human-readable name
-      categoryId: categoryId,  // Keep ID for mapping back
+      category: categoryName,
+      categoryId: categoryId,
       avgMonthlySpend: avgMonthly,
       suggestedBudget: suggested,
       mlUsed: Boolean(mlSignals),
@@ -284,16 +253,12 @@ export const generateBudgetsForUser = async ({
 
     const existing = budgetMap[key];
 
-    // Skip if user has manually set this budget
     if (existing && !existing.isAutoGenerated) continue;
 
     if (existing) {
       const current = Number(existing.monthlyLimit);
-      // Apply rate limiting to prevent wild swings
-      suggested = Math.min(suggested, current * MAX_BUDGET_INCREASE);  // Max +25%
-      suggested = Math.max(suggested, current * MAX_BUDGET_DECREASE);  // Max -15%
-
-      // Ensure minimum is still respected after rate limiting
+      suggested = Math.min(suggested, current * MAX_BUDGET_INCREASE);
+      suggested = Math.max(suggested, current * MAX_BUDGET_DECREASE);
       suggested = Math.max(suggested, MIN_BUDGET_AMOUNT);
 
       existing.monthlyLimit = suggested.toFixed(2);
@@ -312,7 +277,6 @@ export const generateBudgetsForUser = async ({
     }
   }
 
-  // Generate explanations using category NAMES
   const explanations =
     explanationInputs.length > 0
       ? await generateBudgetExplanationsBatch(explanationInputs)
@@ -320,9 +284,7 @@ export const generateBudgetsForUser = async ({
 
   console.log("[BUDGET_GEN] Explanations generated for:", Object.keys(explanations));
 
-  // Map explanations back to budgets using category name
   for (const budget of results) {
-    // Find the category name for this budget
     const categoryName = categoryNameMap[budget.categoryId] || "Uncategorized";
     budget.explanation = explanations[categoryName] ?? null;
     await budget.save();

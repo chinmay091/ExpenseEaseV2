@@ -1,5 +1,5 @@
 const mean = (arr) => arr.reduce((a, b) => a + b, 0) / (arr.length || 1);
-const std = (arr, m) => 
+const std = (arr, m) =>
     Math.sqrt(arr.reduce((s, x) => s + Math.pow(x - m, 2), 0) / (arr.length || 1));
 
 export const mlPredictStub = ({ history }) => {
@@ -21,15 +21,15 @@ export const mlPredictStub = ({ history }) => {
         amounts[amounts.length - 1] > amounts[0] * 1.05
             ? "up"
             : amounts[amounts.length - 1] < amounts[0] * 0.95
-            ? "down"
-            : "stable";
+                ? "down"
+                : "stable";
 
     const volatility = Math.min(1, Math.max(0, s / (m || 1)));
 
-    const predicted = 
+    const predicted =
         trend === "up"
             ? m * 1.08 : trend === "down" ? m * 0.92 : m;
-        
+
     return {
         predicted_spend: Math.round(predicted),
         volatility_score: Number(volatility.toFixed(2)),

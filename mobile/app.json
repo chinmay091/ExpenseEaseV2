@@ -1,15 +1,21 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "ExpenseEase",
+    "slug": "expense-ease",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "expenseease",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.expenseease.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow ExpenseEase to access your camera to scan receipts",
+        "NSPhotoLibraryUsageDescription": "Allow ExpenseEase to access your photos to import receipts",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +25,14 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.expenseease.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_SMS",
+        "android.permission.RECEIVE_SMS",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -38,11 +51,36 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow ExpenseEase to access your camera to scan receipts"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow ExpenseEase to access your photos to import receipts"
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.YOUR_IOS_CLIENT_ID"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9490aac0-f056-4baa-b647-e204fdd83508"
+      }
+    },
+    "owner": "chinmay0910"
   }
 }
