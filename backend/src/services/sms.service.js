@@ -1,15 +1,6 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { getLLM, isLLMEnabled, extractJSON } from "../utils/llm.util.js";
 import { getCached, setCache, CACHE_KEYS, CACHE_TTL } from "../config/redis.js";
-
-const LLM_ENABLED = process.env.LLM_ENABLED === "true";
-
-const llm = new ChatGoogleGenerativeAI({
-    model: "gemini-1.5-flash",
-    temperature: 0.3,
-    apiKey: process.env.GOOGLE_API_KEY,
-    maxRetries: 2,
-});
 
 const SMS_PARSING_PROMPT = `You are an SMS parser that extracts transaction details from bank SMS messages.
 
@@ -37,36 +28,27 @@ export const parseTransactionSms = async (messages) => {
         return [];
     }
 
-    if (!LLM_ENABLED) {
+    if (!isLLMEnabled()) {
         return parseWithRegex(messages);
     }
 
     const smsText = messages.map((msg, i) => `[${i + 1}] ${msg.body}`).join("\n\n");
 
     const cached = await getCached(CACHE_KEYS.SMS_PARSE, smsText);
-    if (cached) {
-        return cached;
-    }
+    if (cached) return cached;
 
     try {
+        const llm = getLLM("precise");
         const response = await llm.invoke([
             new SystemMessage(SMS_PARSING_PROMPT),
             new HumanMessage(`Parse these SMS messages:\n\n${smsText}`),
         ]);
 
-        const content = typeof response.content === 'string'
-            ? response.content.trim()
-            : response.content;
+        const content = typeof response.content === 'string' ? response.content.trim() : response.content;
+        const parsed = extractJSON(content, "array");
 
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            const result = parsed.map(tx => ({
-                ...tx,
-                source: 'sms',
-                confidence: 'high',
-            }));
-
+        if (parsed) {
+            const result = parsed.map(tx => ({ ...tx, source: 'sms', confidence: 'high' }));
             await setCache(CACHE_KEYS.SMS_PARSE, smsText, result, CACHE_TTL.SMS_PARSE);
             return result;
         }
@@ -84,11 +66,11 @@ const parseWithRegex = (messages) => {
     const patterns = {
         svcDebit: /DEBITED\s+for\s+Rs\.?\s*([\d,]+\.?\d*)/i,
         svcCredit: /CREDITED\s+(?:with|for)?\s*Rs\.?\s*([\d,]+\.?\d*)/i,
-        debit: /(?:debited|spent|paid|sent|withdrawn|transferred|debit|payment of|purchase of|dr\b)[\s\S]*?(?:Rs\.?|INR|₹|rs)[\s.]*([d,]+\.?\d*)/i,
-        debitAlt: /(?:Rs\.?|INR|₹|rs)[\s.]*([d,]+\.?\d*)[\s\S]*?(?:debited|sent|paid|dr\b|withdrawn)/i,
-        credit: /(?:credited|received|refund|cashback|credit|cr\b|deposited)[\s\S]*?(?:Rs\.?|INR|₹|rs)[\s.]*([d,]+\.?\d*)/i,
-        creditAlt: /(?:Rs\.?|INR|₹|rs)[\s.]*([d,]+\.?\d*)[\s\S]*?(?:credited|received|cr\b|deposited)/i,
-        upiDebit: /(?:sent|paid|upi|phonepe|gpay|paytm)[\s\S]*?(?:Rs\.?|INR|₹|rs)[\s.]*([d,]+\.?\d*)/i,
+        debit: /(?:debited|spent|paid|sent|withdrawn|transferred|debit|payment of|purchase of|dr\b)[\s\S]*?(?:Rs\.?|INR|₹|rs)[\s.]*([\d,]+\.?\d*)/i,
+        debitAlt: /(?:Rs\.?|INR|₹|rs)[\s.]*([\d,]+\.?\d*)[\s\S]*?(?:debited|sent|paid|dr\b|withdrawn)/i,
+        credit: /(?:credited|received|refund|cashback|credit|cr\b|deposited)[\s\S]*?(?:Rs\.?|INR|₹|rs)[\s.]*([\d,]+\.?\d*)/i,
+        creditAlt: /(?:Rs\.?|INR|₹|rs)[\s.]*([\d,]+\.?\d*)[\s\S]*?(?:credited|received|cr\b|deposited)/i,
+        upiDebit: /(?:sent|paid|upi|phonepe|gpay|paytm)[\s\S]*?(?:Rs\.?|INR|₹|rs)[\s.]*([\d,]+\.?\d*)/i,
         amount: /(?:Rs\.?|INR|₹|rs)[\s.]*([\d,]+\.?\d*)/i,
         account: /(?:a\/c|account|card|acct|ac)[\s\S]*?[xX*]*(\d{4})/i,
         date: /(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/i,
@@ -103,17 +85,9 @@ const parseWithRegex = (messages) => {
         let svcCreditMatch = body.match(patterns.svcCredit);
 
         if (svcDebitMatch) {
-            transaction = {
-                amount: parseFloat(svcDebitMatch[1].replace(/,/g, '')),
-                type: 'debit',
-                description: 'Debit transaction',
-            };
+            transaction = { amount: parseFloat(svcDebitMatch[1].replace(/,/g, '')), type: 'debit', description: 'Debit transaction' };
         } else if (svcCreditMatch) {
-            transaction = {
-                amount: parseFloat(svcCreditMatch[1].replace(/,/g, '')),
-                type: 'credit',
-                description: 'Credit transaction',
-            };
+            transaction = { amount: parseFloat(svcCreditMatch[1].replace(/,/g, '')), type: 'credit', description: 'Credit transaction' };
         }
 
         if (!transaction) {
@@ -121,40 +95,24 @@ const parseWithRegex = (messages) => {
             let creditMatch = body.match(patterns.credit) || body.match(patterns.creditAlt);
 
             if (creditMatch && !debitMatch) {
-                transaction = {
-                    amount: parseFloat(creditMatch[1].replace(/,/g, '')),
-                    type: 'credit',
-                    description: 'Credit transaction',
-                };
+                transaction = { amount: parseFloat(creditMatch[1].replace(/,/g, '')), type: 'credit', description: 'Credit transaction' };
             } else if (debitMatch) {
-                transaction = {
-                    amount: parseFloat(debitMatch[1].replace(/,/g, '')),
-                    type: 'debit',
-                    description: 'Debit transaction',
-                };
+                transaction = { amount: parseFloat(debitMatch[1].replace(/,/g, '')), type: 'debit', description: 'Debit transaction' };
             } else {
                 const amountMatch = body.match(patterns.amount);
                 if (amountMatch && body.toLowerCase().includes('bank')) {
                     const isCredit = /credit|receive|deposit|cr\b/i.test(body);
-                    transaction = {
-                        amount: parseFloat(amountMatch[1].replace(/,/g, '')),
-                        type: isCredit ? 'credit' : 'debit',
-                        description: 'Bank transaction',
-                    };
+                    transaction = { amount: parseFloat(amountMatch[1].replace(/,/g, '')), type: isCredit ? 'credit' : 'debit', description: 'Bank transaction' };
                 }
             }
         }
 
         if (transaction && transaction.amount > 0) {
             const accountMatch = body.match(patterns.account);
-            if (accountMatch) {
-                transaction.account = accountMatch[1];
-            }
+            if (accountMatch) transaction.account = accountMatch[1];
 
             const dateMatch = body.match(patterns.date);
-            if (dateMatch) {
-                transaction.date = dateMatch[1];
-            }
+            if (dateMatch) transaction.date = dateMatch[1];
 
             const merchantMatch = body.match(patterns.merchant);
             if (merchantMatch) {

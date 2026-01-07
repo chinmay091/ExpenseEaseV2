@@ -2,17 +2,13 @@ import { CronJob } from "cron";
 import { generateBudgetsForUser } from "../services/budget.service.js";
 import { cleanupExpiredTokens } from "../services/auth.service.js";
 import { autoContributeToGoals } from "../services/goal.service.js";
+import { checkBudgetWarnings, checkBillReminders, sendWeeklySummary } from "../services/notification.service.js";
 import { User } from "../models/index.js";
 
-/**
- * Budget Recalculation Job
- * Runs daily at midnight to regenerate budgets for all users
- */
 const budgetRecalculationJob = new CronJob(
-    "0 0 * * *", // Every day at midnight
+    "0 0 * * *",
     async () => {
         console.log("[CRON] Starting budget recalculation job...");
-
         try {
             const users = await User.findAll({ attributes: ["id"] });
             console.log(`[CRON] Found ${users.length} users to process`);
@@ -25,7 +21,6 @@ const budgetRecalculationJob = new CronJob(
                     console.error(`[CRON] Failed for user ${user.id}:`, err.message);
                 }
             }
-
             console.log("[CRON] Budget recalculation job completed");
         } catch (err) {
             console.error("[CRON] Budget recalculation job failed:", err.message);
@@ -36,15 +31,10 @@ const budgetRecalculationJob = new CronJob(
     "Asia/Kolkata"
 );
 
-/**
- * Token Cleanup Job
- * Runs daily at 3 AM to remove expired refresh tokens
- */
 const tokenCleanupJob = new CronJob(
-    "0 3 * * *", // Every day at 3 AM
+    "0 3 * * *",
     async () => {
         console.log("[CRON] Starting token cleanup job...");
-
         try {
             const deleted = await cleanupExpiredTokens();
             console.log(`[CRON] Cleaned up ${deleted} expired tokens`);
@@ -57,19 +47,12 @@ const tokenCleanupJob = new CronJob(
     "Asia/Kolkata"
 );
 
-/**
- * Goal Auto-Contribution Job
- * Runs when income is added - triggered by expense service, not cron
- * This cron runs daily at 6 AM to catch any missed auto-contributions
- */
 const goalAutoContributionJob = new CronJob(
-    "0 6 * * *", // Every day at 6 AM
+    "0 6 * * *",
     async () => {
         console.log("[CRON] Starting goal auto-contribution check...");
-
         try {
             const users = await User.findAll({ attributes: ["id"] });
-
             for (const user of users) {
                 try {
                     await autoContributeToGoals(user.id);
@@ -77,7 +60,6 @@ const goalAutoContributionJob = new CronJob(
                     console.error(`[CRON] Auto-contribution failed for user ${user.id}:`, err.message);
                 }
             }
-
             console.log("[CRON] Goal auto-contribution check completed");
         } catch (err) {
             console.error("[CRON] Goal auto-contribution job failed:", err.message);
@@ -88,9 +70,61 @@ const goalAutoContributionJob = new CronJob(
     "Asia/Kolkata"
 );
 
-/**
- * Start all scheduled jobs
- */
+const budgetWarningsJob = new CronJob(
+    "0 9 * * *",
+    async () => {
+        console.log("[CRON] Starting budget warnings check...");
+        try {
+            const result = await checkBudgetWarnings();
+            console.log(`[CRON] Budget warnings: checked ${result.checked}, sent ${result.warnings}`);
+        } catch (err) {
+            console.error("[CRON] Budget warnings job failed:", err.message);
+        }
+    },
+    null,
+    false,
+    "Asia/Kolkata"
+);
+
+const billRemindersJob = new CronJob(
+    "0 8 * * *",
+    async () => {
+        console.log("[CRON] Starting bill reminders check...");
+        try {
+            const result = await checkBillReminders();
+            console.log(`[CRON] Bill reminders: checked ${result.checked}, sent ${result.reminders}`);
+        } catch (err) {
+            console.error("[CRON] Bill reminders job failed:", err.message);
+        }
+    },
+    null,
+    false,
+    "Asia/Kolkata"
+);
+
+const weeklySummaryJob = new CronJob(
+    "0 10 * * 0",
+    async () => {
+        console.log("[CRON] Starting weekly summary notifications...");
+        try {
+            const users = await User.findAll({ attributes: ["id"] });
+            for (const user of users) {
+                try {
+                    await sendWeeklySummary(user.id);
+                } catch (err) {
+                    console.error(`[CRON] Weekly summary failed for user ${user.id}:`, err.message);
+                }
+            }
+            console.log("[CRON] Weekly summary notifications completed");
+        } catch (err) {
+            console.error("[CRON] Weekly summary job failed:", err.message);
+        }
+    },
+    null,
+    false,
+    "Asia/Kolkata"
+);
+
 export const startJobScheduler = () => {
     console.log("[CRON] Initializing job scheduler...");
 
@@ -103,15 +137,24 @@ export const startJobScheduler = () => {
     goalAutoContributionJob.start();
     console.log("[CRON] Goal auto-contribution job scheduled (daily at 6 AM)");
 
+    billRemindersJob.start();
+    console.log("[CRON] Bill reminders job scheduled (daily at 8 AM)");
+
+    budgetWarningsJob.start();
+    console.log("[CRON] Budget warnings job scheduled (daily at 9 AM)");
+
+    weeklySummaryJob.start();
+    console.log("[CRON] Weekly summary job scheduled (Sundays at 10 AM)");
+
     console.log("[CRON] All jobs started successfully");
 };
 
-/**
- * Stop all scheduled jobs (for graceful shutdown)
- */
 export const stopJobScheduler = () => {
     budgetRecalculationJob.stop();
     tokenCleanupJob.stop();
     goalAutoContributionJob.stop();
+    budgetWarningsJob.stop();
+    billRemindersJob.stop();
+    weeklySummaryJob.stop();
     console.log("[CRON] All jobs stopped");
 };

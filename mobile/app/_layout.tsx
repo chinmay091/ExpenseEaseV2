@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export const unstable_settings = {
@@ -18,21 +19,20 @@ function RootLayoutNav() {
   const router = useRouter();
   const colorScheme = useColorScheme();
 
+  useNotifications();
+
   useEffect(() => {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
 
     if (!isAuthenticated && inAuthGroup) {
-      // Redirect to login if not authenticated and trying to access protected routes
       router.replace('/login');
     } else if (isAuthenticated && (segments[0] === 'login' || segments[0] === 'signup')) {
-      // Redirect to home if authenticated and on auth screens
       router.replace('/(tabs)');
     }
   }, [isAuthenticated, isLoading, segments]);
 
-  // Show loading screen while checking auth state
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -47,6 +47,11 @@ function RootLayoutNav() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="signup" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="bills" options={{ headerShown: false }} />
+        <Stack.Screen name="analytics" options={{ headerShown: false }} />
+        <Stack.Screen name="groups" options={{ headerShown: false }} />
+        <Stack.Screen name="import" options={{ headerShown: false }} />
+        <Stack.Screen name="reports" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />

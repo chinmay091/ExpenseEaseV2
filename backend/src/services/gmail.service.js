@@ -1,16 +1,7 @@
 import axios from 'axios';
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { getLLM, isLLMEnabled, extractJSON } from "../utils/llm.util.js";
 import { getCached, setCache, CACHE_KEYS, CACHE_TTL } from "../config/redis.js";
-
-const LLM_ENABLED = process.env.LLM_ENABLED === "true";
-
-const llm = new ChatGoogleGenerativeAI({
-    model: "gemini-1.5-flash",
-    temperature: 0.3,
-    apiKey: process.env.GOOGLE_API_KEY,
-    maxRetries: 2,
-});
 
 export const fetchTransactionEmails = async (accessToken, maxResults = 20) => {
     try {
@@ -19,13 +10,8 @@ export const fetchTransactionEmails = async (accessToken, maxResults = 20) => {
         const listResponse = await axios.get(
             'https://www.googleapis.com/gmail/v1/users/me/messages',
             {
-                params: {
-                    q: searchQuery,
-                    maxResults,
-                },
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                },
+                params: { q: searchQuery, maxResults },
+                headers: { Authorization: `Bearer ${accessToken}` },
             }
         );
 
@@ -40,9 +26,7 @@ export const fetchTransactionEmails = async (accessToken, maxResults = 20) => {
                         `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}`,
                         {
                             params: { format: 'full' },
-                            headers: {
-                                Authorization: `Bearer ${accessToken}`,
-                            },
+                            headers: { Authorization: `Bearer ${accessToken}` },
                         }
                     );
                     return msgResponse.data;
@@ -62,7 +46,6 @@ export const fetchTransactionEmails = async (accessToken, maxResults = 20) => {
 
 const extractEmailBody = (message) => {
     const payload = message.payload;
-    let body = '';
 
     const getBody = (part) => {
         if (part.body && part.body.data) {
@@ -70,9 +53,7 @@ const extractEmailBody = (message) => {
         }
         if (part.parts) {
             for (const subPart of part.parts) {
-                if (subPart.mimeType === 'text/plain') {
-                    return getBody(subPart);
-                }
+                if (subPart.mimeType === 'text/plain') return getBody(subPart);
             }
             for (const subPart of part.parts) {
                 const result = getBody(subPart);
@@ -82,8 +63,7 @@ const extractEmailBody = (message) => {
         return '';
     };
 
-    body = getBody(payload);
-    return body.substring(0, 5000);
+    return getBody(payload).substring(0, 5000);
 };
 
 const getEmailHeaders = (message) => {
@@ -95,7 +75,6 @@ const getEmailHeaders = (message) => {
             headers[header.name.toLowerCase()] = header.value;
         }
     }
-
     return headers;
 };
 
@@ -133,20 +112,17 @@ export const parseTransactionEmails = async (emails) => {
                 continue;
             }
 
-            if (LLM_ENABLED) {
+            if (isLLMEnabled()) {
+                const llm = getLLM("precise");
                 const response = await llm.invoke([
                     new SystemMessage(EMAIL_PARSING_PROMPT),
                     new HumanMessage(`Parse this email:\n\nFrom: ${headers.from}\nSubject: ${headers.subject}\nDate: ${headers.date}\n\nBody:\n${body.substring(0, 2000)}`),
                 ]);
 
-                const content = typeof response.content === 'string'
-                    ? response.content.trim()
-                    : response.content;
+                const content = typeof response.content === 'string' ? response.content.trim() : response.content;
+                const parsed = extractJSON(content, "object");
 
-                const jsonMatch = content.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    const parsed = JSON.parse(jsonMatch[0]);
-
+                if (parsed) {
                     await setCache(CACHE_KEYS.EMAIL_PARSE, cacheKey, parsed, CACHE_TTL.EMAIL_PARSE);
 
                     if (parsed.isTransaction !== false && parsed.amount) {
@@ -163,7 +139,7 @@ export const parseTransactionEmails = async (emails) => {
                 const amount = body.match(/(?:Rs\.?|INR|₹|USD|\$)\s*([\d,]+\.?\d*)/i);
                 if (amount) {
                     const isCredit = /(?:credit|refund|received|cashback)/i.test(body);
-                    const result = {
+                    transactions.push({
                         amount: parseFloat(amount[1].replace(/,/g, '')),
                         type: isCredit ? 'credit' : 'debit',
                         description: headers.subject || 'Email transaction',
@@ -171,8 +147,7 @@ export const parseTransactionEmails = async (emails) => {
                         emailSubject: headers.subject,
                         emailFrom: headers.from,
                         confidence: 'medium',
-                    };
-                    transactions.push(result);
+                    });
                 }
             }
         } catch (error) {

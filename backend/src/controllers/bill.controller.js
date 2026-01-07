@@ -1,26 +1,21 @@
 import * as billService from "../services/bill.service.js";
+import { createBillSchema, updateBillSchema } from "../validator/bill.schema.js";
+import { ZodError } from "zod";
 
 export const create = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const { name, amount, dueDay, frequency, reminderDays, categoryId } = req.body;
-
-        if (!name || !amount || !dueDay) {
-            return res.status(400).json({ error: "name, amount, and dueDay are required" });
-        }
+        const value = createBillSchema.parse(req.body);
 
         const bill = await billService.createBill({
-            userId,
-            name,
-            amount,
-            dueDay,
-            frequency,
-            reminderDays,
-            categoryId,
+            userId: req.user.id,
+            ...value,
         });
 
         res.status(201).json(bill);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: error.errors[0].message });
+        }
         console.error("[BILL] Create error:", error);
         res.status(500).json({ error: "Failed to create bill" });
     }
@@ -51,12 +46,17 @@ export const getOne = async (req, res) => {
 
 export const update = async (req, res) => {
     try {
-        const bill = await billService.updateBill(req.params.id, req.user.id, req.body);
+        const value = updateBillSchema.parse(req.body);
+
+        const bill = await billService.updateBill(req.params.id, req.user.id, value);
         if (!bill) {
             return res.status(404).json({ error: "Bill not found" });
         }
         res.json(bill);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: error.errors[0].message });
+        }
         console.error("[BILL] Update error:", error);
         res.status(500).json({ error: "Failed to update bill" });
     }

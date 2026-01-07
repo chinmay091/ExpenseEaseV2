@@ -1,13 +1,20 @@
 import * as groupService from "../services/group.service.js";
+import { createGroupSchema, addMemberSchema, addExpenseSchema, settleSchema } from "../validator/group.schema.js";
+import { ZodError } from "zod";
 
 export const create = async (req, res) => {
     try {
+        const value = createGroupSchema.parse(req.body);
+
         const group = await groupService.createGroup({
             userId: req.user.id,
-            ...req.body,
+            ...value,
         });
         res.status(201).json(group);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: error.errors[0].message });
+        }
         console.error("[GROUP] Create error:", error);
         res.status(500).json({ error: "Failed to create group" });
     }
@@ -38,16 +45,21 @@ export const getOne = async (req, res) => {
 
 export const addMember = async (req, res) => {
     try {
+        const value = addMemberSchema.parse(req.body);
+
         const result = await groupService.addMember({
             groupId: req.params.id,
             userId: req.user.id,
-            ...req.body,
+            ...value,
         });
         if (!result.success) {
             return res.status(400).json({ error: result.error });
         }
         res.status(201).json(result.member);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: error.errors[0].message });
+        }
         console.error("[GROUP] AddMember error:", error);
         res.status(500).json({ error: "Failed to add member" });
     }
@@ -69,15 +81,20 @@ export const respondInvite = async (req, res) => {
 
 export const addExpense = async (req, res) => {
     try {
+        const value = addExpenseSchema.parse(req.body);
+
         const result = await groupService.addGroupExpense({
             groupId: req.params.id,
-            ...req.body,
+            ...value,
         });
         if (!result.success) {
             return res.status(400).json({ error: result.error });
         }
         res.status(201).json(result);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: error.errors[0].message });
+        }
         console.error("[GROUP] AddExpense error:", error);
         res.status(500).json({ error: "Failed to add expense" });
     }
@@ -85,13 +102,17 @@ export const addExpense = async (req, res) => {
 
 export const settle = async (req, res) => {
     try {
-        const { splitId, memberId } = req.body;
-        const result = await groupService.settleSplit(splitId, memberId);
+        const value = settleSchema.parse(req.body);
+
+        const result = await groupService.settleSplit(value.splitId, value.memberId);
         if (!result.success) {
             return res.status(404).json({ error: result.error });
         }
         res.json(result.split);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: error.errors[0].message });
+        }
         console.error("[GROUP] Settle error:", error);
         res.status(500).json({ error: "Failed to settle" });
     }

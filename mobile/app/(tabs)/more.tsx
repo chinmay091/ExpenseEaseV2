@@ -18,6 +18,24 @@ export default function MoreScreen() {
 
   const menuItems: MenuItem[] = [
     {
+      icon: "doc.text.fill",
+      label: "Bills & Reminders",
+      description: "Manage recurring bills and payments",
+      route: "/bills",
+    },
+    {
+      icon: "chart.line.uptrend.xyaxis",
+      label: "Analytics",
+      description: "Trends, insights & spending analysis",
+      route: "/analytics",
+    },
+    {
+      icon: "person.3.fill",
+      label: "Split Expenses",
+      description: "Share expenses with friends & groups",
+      route: "/groups",
+    },
+    {
       icon: "camera.fill",
       label: "Scan Receipt",
       description: "Use camera to scan and import receipts",
@@ -54,7 +72,6 @@ export default function MoreScreen() {
         Additional features & settings
       </Text>
 
-      {/* User Card */}
       <View style={[styles.userCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
           <Text style={styles.avatarText}>
@@ -67,7 +84,6 @@ export default function MoreScreen() {
         </View>
       </View>
 
-      {/* Menu Items */}
       <View style={styles.menuSection}>
         {menuItems.map((item, index) => (
           <TouchableOpacity
@@ -89,7 +105,6 @@ export default function MoreScreen() {
         ))}
       </View>
 
-      {/* Logout Button */}
       <TouchableOpacity 
         style={[styles.logoutButton, { borderColor: colors.error }]} 
         onPress={handleLogout}
