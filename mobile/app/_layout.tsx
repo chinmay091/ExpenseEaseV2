@@ -49,7 +49,8 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="bills" options={{ headerShown: false }} />
         <Stack.Screen name="analytics" options={{ headerShown: false }} />
-        <Stack.Screen name="groups" options={{ headerShown: false }} />
+        <Stack.Screen name="groups/index" options={{ headerShown: false }} />
+        <Stack.Screen name="groups/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="import" options={{ headerShown: false }} />
         <Stack.Screen name="reports" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />

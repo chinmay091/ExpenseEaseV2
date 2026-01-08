@@ -6,10 +6,12 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Linking,
 } from "react-native";
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const FileSystem = require("expo-file-system");
+const Sharing = require("expo-sharing");
 import {
   getReportPeriods,
   getReportData,
@@ -69,27 +71,44 @@ export default function ReportsScreen() {
   const handleExportCSV = async () => {
     if (!selectedPeriod) return;
     
-    try {
-      // @ts-ignore - accessing the base URL from axios
-      const baseUrl = api.defaults.baseURL || "";
-      const url = `${baseUrl}/reports/csv?year=${selectedPeriod.year}&month=${selectedPeriod.month}`;
-      
-      Alert.alert(
-        "Export Report",
-        `Download CSV report for ${selectedPeriod.label}?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          { 
-            text: "Download", 
-            onPress: () => Linking.openURL(url).catch(() => {
-              Alert.alert("Error", "Could not open download link");
-            })
-          },
-        ]
-      );
-    } catch (error) {
-      Alert.alert("Error", "Failed to export report");
-    }
+    Alert.alert(
+      "Export Report",
+      `Download CSV report for ${selectedPeriod.label}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Download", 
+          onPress: async () => {
+            try {
+              const response = await api.get(
+                `/reports/csv?year=${selectedPeriod.year}&month=${selectedPeriod.month}`,
+                { responseType: 'text' }
+              );
+              
+              const fileName = `ExpenseEase_Report_${selectedPeriod.year}_${selectedPeriod.month}.csv`;
+              // @ts-ignore - cacheDirectory exists at runtime
+              const fileUri = (FileSystem.cacheDirectory || '') + fileName;
+              
+              // @ts-ignore - writeAsStringAsync exists at runtime
+              await FileSystem.writeAsStringAsync(fileUri, response.data);
+              
+              const canShare = await Sharing.isAvailableAsync();
+              if (canShare) {
+                await Sharing.shareAsync(fileUri, {
+                  mimeType: 'text/csv',
+                  dialogTitle: 'Save Report',
+                });
+              } else {
+                Alert.alert("Success", `Report saved to: ${fileUri}`);
+              }
+            } catch (error: any) {
+              console.error("CSV export error:", error);
+              Alert.alert("Error", error.response?.data?.message || "Failed to export report");
+            }
+          }
+        },
+      ]
+    );
   };
 
   const formatCurrency = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;

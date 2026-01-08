@@ -171,53 +171,40 @@ export default function ImportScreen() {
     );
   };
 
-  // Perform the actual import with duplicate checking
   const performImport = async (selected: Transaction[]) => {
     try {
       let successCount = 0;
       let skippedCount = 0;
-      const importedIndices: number[] = [];
 
       for (let i = 0; i < selected.length; i++) {
         const tx = selected[i];
         
-        // Use backend duplicate detection
         const result = await createExpense({
           amount: tx.amount,
           description: tx.description || tx.merchant || "Imported transaction",
           type: tx.type,
           categoryId: defaultCategoryId!,
-          skipDuplicate: true, // Let backend check for duplicates
+          skipDuplicate: true,
         });
         
-        // Check if backend skipped as duplicate
         if (result.skipped) {
           skippedCount++;
-          continue;
-        }
-        
-        successCount++;
-        // Find the original index in transactions array
-        const originalIndex = (activeTab === "sms" ? smsTransactions : gmailTransactions)
-          .findIndex(t => t === tx);
-        if (originalIndex !== -1) {
-          importedIndices.push(originalIndex);
+        } else {
+          successCount++;
         }
       }
 
-      // Show result
       let message = `✅ Imported ${successCount} transaction(s).`;
       if (skippedCount > 0) {
         message += `\n⚠️ Skipped ${skippedCount} duplicate(s).`;
       }
       Alert.alert("Import Complete", message);
       
-      // Clear imported items from list
-      const importedSet = new Set(importedIndices);
+      // Remove ALL selected transactions from list (both imported and duplicates)
       if (activeTab === "sms") {
-        setSmsTransactions(prev => prev.filter((_, i) => !importedSet.has(i)));
+        setSmsTransactions(prev => prev.filter((_, i) => !selectedItems.has(i)));
       } else {
-        setGmailTransactions(prev => prev.filter((_, i) => !importedSet.has(i)));
+        setGmailTransactions(prev => prev.filter((_, i) => !selectedItems.has(i)));
       }
       setSelectedItems(new Set());
     } catch (error) {
