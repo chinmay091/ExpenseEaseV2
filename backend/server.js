@@ -9,8 +9,15 @@ const PORT = process.env.PORT || 3000;
 const startServer = async () => {
   await connectDB();
 
-  await sequelize.sync();
-  console.log("🧱 All models synced");
+  // In development, sync models to database (creates/updates tables)
+  // In production, use migrations instead: npx sequelize-cli db:migrate
+  if (process.env.NODE_ENV !== "production") {
+    await sequelize.sync();
+    console.log("🧱 All models synced (development mode)");
+  } else {
+    console.log("🧱 Production mode - using migrations for schema management");
+  }
+
 
   try {
     await initRedis();

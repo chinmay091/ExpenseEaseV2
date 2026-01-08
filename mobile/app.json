@@ -79,7 +79,8 @@
       "router": {},
       "eas": {
         "projectId": "9490aac0-f056-4baa-b647-e204fdd83508"
-      }
+      },
+      "apiUrl": ""
     },
     "owner": "chinmay0910"
   }
