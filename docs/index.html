@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseEase - AI Personal Finance Assistant</title>
+    <meta name="description" content="AI-powered personal finance app with smart budgeting, receipt scanning, SMS import, and spending insights.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --light: #f1f5f9;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--dark);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Animated gradient background */
+        .bg-gradient {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, var(--dark) 0%, #1e1b4b 50%, var(--dark) 100%);
+            z-index: -2;
+        }
+        
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            z-index: -1;
+            animation: float 8s ease-in-out infinite;
+        }
+        
+        .bg-glow-1 { background: var(--primary); top: -200px; left: -200px; }
+        .bg-glow-2 { background: var(--secondary); bottom: -200px; right: -200px; animation-delay: -4s; }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, 30px); }
+        }
+        
+        /* Layout */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        
+        /* Header */
+        header {
+            padding: 1.5rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logo-icon {
+            font-size: 1.8rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+        
+        .nav-links a {
+            color: var(--gray);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .nav-links a:hover { color: white; }
+        
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 8rem 0 4rem;
+        }
+        
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .hero-badge span {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 600;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+        }
+        
+        h1 .gradient {
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero-text p {
+            font-size: 1.2rem;
+            color: var(--gray);
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(99, 102, 241, 0.5);
+        }
+        
+        .btn-outline {
+            border: 2px solid rgba(255,255,255,0.2);
+            color: white;
+            background: transparent;
+        }
+        
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.3);
+        }
+        
+        /* Phone mockup */
+        .hero-phone {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .phone-frame {
+            width: 280px;
+            height: 580px;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+            position: relative;
+        }
+        
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 28px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .phone-header {
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .phone-header h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .phone-header p {
+            font-size: 0.75rem;
+            color: var(--gray);
+        }
+        
+        .phone-balance {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .phone-balance .label {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-bottom: 0.5rem;
+        }
+        
+        .phone-balance .amount {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .phone-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            padding: 1rem;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .stat .label {
+            font-size: 0.7rem;
+            color: var(--gray);
+        }
+        
+        .stat.income .value { color: #10b981; }
+        .stat.expense .value { color: #ef4444; }
+        
+        .phone-transactions {
+            flex: 1;
+            background: rgba(255,255,255,0.02);
+            border-radius: 20px 20px 0 0;
+            padding: 1rem;
+        }
+        
+        .phone-transactions h4 {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-bottom: 0.75rem;
+        }
+        
+        .transaction {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .transaction-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+        
+        .transaction-info {
+            flex: 1;
+        }
+        
+        .transaction-info .name {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .transaction-info .category {
+            font-size: 0.7rem;
+            color: var(--gray);
+        }
+        
+        .transaction-amount {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .transaction-amount.negative { color: #ef4444; }
+        .transaction-amount.positive { color: #10b981; }
+        
+        /* Features */
+        .features {
+            padding: 6rem 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        
+        .section-title h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .section-title p {
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+        
+        .feature-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+        
+        .feature-card:hover {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-4px);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .feature-card p {
+            color: var(--gray);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        /* Tech Stack */
+        .tech-stack {
+            padding: 4rem 0;
+            text-align: center;
+        }
+        
+        .tech-stack h3 {
+            color: var(--gray);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        .tech-logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+            opacity: 0.7;
+        }
+        
+        .tech-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+        
+        .tech-item span {
+            font-size: 2rem;
+        }
+        
+        /* Footer/CTA */
+        .cta {
+            padding: 6rem 0;
+            text-align: center;
+        }
+        
+        .cta-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 24px;
+            padding: 4rem;
+        }
+        
+        .cta h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .cta p {
+            color: var(--gray);
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        
+        footer {
+            padding: 2rem 0;
+            text-align: center;
+            color: var(--gray);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        /* Responsive */
+        @media (max-width: 900px) {
+            .hero-content { grid-template-columns: 1fr; text-align: center; }
+            .hero-buttons { justify-content: center; }
+            .hero-phone { margin-top: 3rem; }
+            .features-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    
+    <header>
+        <div class="container">
+            <div class="logo">
+                <span class="logo-icon">💰</span>
+                ExpenseEase
+            </div>
+            <nav class="nav-links">
+                <a href="#features">Features</a>
+                <a href="https://github.com/chinmay0910/ExpenseEase-v2" target="_blank">GitHub</a>
+                <a href="https://github.com/chinmay0910/ExpenseEase-v2/releases/latest" class="btn btn-primary" style="padding: 0.6rem 1.2rem;">
+                    📥 Download
+                </a>
+            </nav>
+        </div>
+    </header>
+    
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="hero-badge">
+                        ✨ <span>Powered by AI</span>
+                    </div>
+                    <h1>
+                        Smart Money Management<br>
+                        <span class="gradient">Made Simple</span>
+                    </h1>
+                    <p>
+                        ExpenseEase uses AI to automatically categorize your spending, 
+                        generate smart budgets, and provide personalized insights to 
+                        help you save more.
+                    </p>
+                    <div class="hero-buttons">
+                        <a href="https://github.com/chinmay0910/ExpenseEase-v2/releases/latest" class="btn btn-primary">
+                            📥 Download APK
+                        </a>
+                        <a href="https://github.com/chinmay0910/ExpenseEase-v2" class="btn btn-outline">
+                            ⭐ Star on GitHub
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-phone">
+                    <div class="phone-frame">
+                        <div class="phone-screen">
+                            <div class="phone-header">
+                                <h3>Welcome back! 👋</h3>
+                                <p>January 2026</p>
+                            </div>
+                            <div class="phone-balance">
+                                <div class="label">Total Balance</div>
+                                <div class="amount">₹47,250</div>
+                            </div>
+                            <div class="phone-stats">
+                                <div class="stat income">
+                                    <div class="value">+₹65,000</div>
+                                    <div class="label">Income</div>
+                                </div>
+                                <div class="stat expense">
+                                    <div class="value">-₹17,750</div>
+                                    <div class="label">Expenses</div>
+                                </div>
+                            </div>
+                            <div class="phone-transactions">
+                                <h4>Recent Transactions</h4>
+                                <div class="transaction">
+                                    <div class="transaction-icon">🛒</div>
+                                    <div class="transaction-info">
+                                        <div class="name">Big Bazaar</div>
+                                        <div class="category">Groceries</div>
+                                    </div>
+                                    <div class="transaction-amount negative">-₹2,450</div>
+                                </div>
+                                <div class="transaction">
+                                    <div class="transaction-icon">💼</div>
+                                    <div class="transaction-info">
+                                        <div class="name">Salary Credit</div>
+                                        <div class="category">Income</div>
+                                    </div>
+                                    <div class="transaction-amount positive">+₹65,000</div>
+                                </div>
+                                <div class="transaction">
+                                    <div class="transaction-icon">🚕</div>
+                                    <div class="transaction-info">
+                                        <div class="name">Ola Ride</div>
+                                        <div class="category">Transport</div>
+                                    </div>
+                                    <div class="transaction-amount negative">-₹380</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Powerful Features</h2>
+                <p>Everything you need to manage your finances</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI-Powered Budgets</h3>
+                    <p>Automatically generates personalized budgets based on your spending patterns and provides smart explanations.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>SMS Import</h3>
+                    <p>Automatically parse bank SMS messages to import transactions without manual entry.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📧</div>
+                    <h3>Gmail Integration</h3>
+                    <p>Connect your Gmail to automatically extract transactions from order confirmations and receipts.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧾</div>
+                    <h3>Receipt Scanner</h3>
+                    <p>Snap a photo of any receipt and let OCR technology extract the details automatically.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <h3>Split Expenses</h3>
+                    <p>Create groups, add expenses, and automatically calculate who owes what.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔔</div>
+                    <h3>Smart Reminders</h3>
+                    <p>Get notified about upcoming bills, budget limits, and unusual spending patterns.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="tech-stack">
+        <div class="container">
+            <h3>Built With</h3>
+            <div class="tech-logos">
+                <div class="tech-item"><span>⚛️</span>React Native</div>
+                <div class="tech-item"><span>📱</span>Expo</div>
+                <div class="tech-item"><span>🟢</span>Node.js</div>
+                <div class="tech-item"><span>🐘</span>PostgreSQL</div>
+                <div class="tech-item"><span>🤖</span>Gemini AI</div>
+                <div class="tech-item"><span>🔴</span>Redis</div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="cta">
+        <div class="container">
+            <div class="cta-box">
+                <h2>Ready to take control of your finances?</h2>
+                <p>Download ExpenseEase now and start your journey to financial freedom.</p>
+                <a href="https://github.com/chinmay0910/ExpenseEase-v2/releases/latest" class="btn btn-primary">
+                    📥 Download APK
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <footer>
+        <div class="container">
+            <p>Made with ❤️ by <a href="https://github.com/chinmay0910" style="color: var(--primary);">Chinmay</a> • 
+            <a href="https://github.com/chinmay0910/ExpenseEase-v2" style="color: var(--gray);">View Source</a></p>
+        </div>
+    </footer>
+</body>
+</html>
