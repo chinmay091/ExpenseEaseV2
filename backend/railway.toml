@@ -1,6 +1,9 @@
 [build]
 builder = "nixpacks"
 
+[build.nixpacks]
+providers = ["node"]
+
 [deploy]
 startCommand = "npm run db:migrate && node server.js"
 healthcheckPath = "/api/health"
