@@ -17,5 +17,79 @@ dist/
 build/
 
 # Virtual environment
-.venv
-.venv311
+.venv/
+.venv311/
+env/
+venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+.npm/
+.yarn/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# ML Models (large files)
+*.onnx
+*.onnx.data
+*.safetensors
+*.h5
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.bin
+!training_args.bin
+
+# ML Training data
+*.csv
+*.parquet
+*.json.gz
+
+# ML Checkpoints
+checkpoint-*/
+runs/
+wandb/
+mlruns/
+
+# ML Model directories (keep config files)
+ML/sms_model/model.safetensors
+ML/sms_model/checkpoint-*/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Expo / React Native
+.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+
+# iOS
+ios/Pods/
+ios/build/
+*.xcworkspace
+*.xcuserdata
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
