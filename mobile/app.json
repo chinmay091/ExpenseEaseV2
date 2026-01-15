@@ -80,7 +80,9 @@
       "eas": {
         "projectId": "9490aac0-f056-4baa-b647-e204fdd83508"
       },
-      "apiUrl": ""
+      "apiUrl": "",
+      "cloudvaultUrl": "https://cloudvault-api.onrender.com",
+      "cloudvaultApiKey": "cv_c81f738e925e573d61039fc1b23a3936a586a11c4b70be3902a2625584ac77a1"
     },
     "owner": "chinmay0910"
   }

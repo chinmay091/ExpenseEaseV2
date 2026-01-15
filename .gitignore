@@ -15,3 +15,7 @@ npm-debug.log*
 # Build outputs
 dist/
 build/
+
+# Virtual environment
+.venv
+.venv311

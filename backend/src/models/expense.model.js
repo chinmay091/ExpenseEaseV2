@@ -41,6 +41,11 @@ const Expense = sequelize.define(
         onDelete: "SET NULL",
       },
     },
+    receiptFileId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "receipt_file_id",
+    },
   },
   {
     tableName: "expenses",

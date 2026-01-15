@@ -2,9 +2,11 @@ import { View, Text, StyleSheet, FlatList, Alert, TouchableOpacity } from "react
 import { useState, useEffect, useCallback } from "react";
 import { getExpenses, deleteExpense, Expense } from "@/api/expense.api";
 import { getCategories, Category } from "@/api/category.api";
+import { getDownloadUrl } from "@/api/cloudvault.api";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "@/hooks/use-theme";
+import * as Linking from "expo-linking";
 
 export default function ExpensesScreen() {
   const { colors } = useTheme();
@@ -85,6 +87,15 @@ export default function ExpensesScreen() {
     });
   };
 
+  const handleViewReceipt = async (receiptFileId: string) => {
+    try {
+      const { downloadUrl } = await getDownloadUrl(receiptFileId);
+      await Linking.openURL(downloadUrl);
+    } catch (error) {
+      Alert.alert("Error", "Failed to load receipt.");
+    }
+  };
+
   const renderItem = ({ item }: { item: Expense }) => {
     const isCredit = item.type === "credit";
     return (
@@ -109,6 +120,11 @@ export default function ExpensesScreen() {
         </Text>
 
         <View style={styles.actions}>
+          {item.receiptFileId && (
+            <TouchableOpacity onPress={() => handleViewReceipt(item.receiptFileId!)} style={styles.actionBtn}>
+              <Text style={[styles.receiptText, { color: colors.success }]}>Receipt</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionBtn}>
             <Text style={[styles.editText, { color: colors.tint }]}>Edit</Text>
           </TouchableOpacity>
@@ -199,6 +215,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   deleteText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  receiptText: {
     fontSize: 14,
     fontWeight: "600",
   },

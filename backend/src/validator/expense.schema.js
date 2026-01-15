@@ -7,6 +7,7 @@ export const createExpenseSchema = z.object({
     categoryId: z.string().uuid().nullish(),
     date: z.string().datetime().optional(),
     source: z.enum(["manual", "sms", "gmail", "scan"]).default("manual"),
+    receiptFileId: z.string().nullish(),
 });
 
 export const updateExpenseSchema = z.object({

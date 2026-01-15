@@ -6,6 +6,7 @@ export type CreateExpensePayload = {
   type: "credit" | "debit";
   categoryId: string;
   skipDuplicate?: boolean;
+  receiptFileId?: string | null;
 };
 
 export type Expense = {
@@ -15,6 +16,7 @@ export type Expense = {
   type: "credit" | "debit";
   categoryId: string;
   createdAt: string;
+  receiptFileId?: string | null;
 };
 
 export type CreateExpenseResponse = {

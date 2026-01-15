@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useTheme } from "@/hooks/use-theme";
 import { extractFromReceipt, ExtractedExpense } from "@/api/ocr.api";
+import { uploadBase64Image } from "@/api/cloudvault.api";
 import { createExpense } from "@/api/expense.api";
 import { getCategories, Category } from "@/api/category.api";
 import { Picker } from "@react-native-picker/picker";
@@ -17,10 +18,10 @@ export default function ScanScreen() {
   const [loading, setLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedExpense | null>(null);
   
-  // Form state for extracted data
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
+  const [receiptFileId, setReceiptFileId] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,6 +83,15 @@ export default function ScanScreen() {
         setExtractedData(expense);
         setAmount(expense.amount?.toString() || "");
         setDescription(expense.description || expense.merchant || "");
+
+        try {
+          const filename = `receipt_${Date.now()}.jpg`;
+          const { fileId } = await uploadBase64Image(base64, filename);
+          setReceiptFileId(fileId);
+        } catch (uploadError) {
+          console.warn("Receipt upload failed:", uploadError);
+        }
+
         setMode("result");
       } else {
         Alert.alert("Extraction Failed", result.error || "Could not extract data from image");
@@ -108,6 +118,7 @@ export default function ScanScreen() {
         description,
         type: "debit",
         categoryId: selectedCategoryId,
+        receiptFileId: receiptFileId,
       });
       Alert.alert("Success", "Expense added successfully!");
       resetState();
@@ -123,6 +134,7 @@ export default function ScanScreen() {
     setAmount("");
     setDescription("");
     setSelectedCategoryId(null);
+    setReceiptFileId(null);
   };
 
   return (
