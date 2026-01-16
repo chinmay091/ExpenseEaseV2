@@ -21,7 +21,7 @@ import { createExpense } from "@/api/expense.api";
 
 export default function DashboardScreen() {
   const { colors, isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   
   // Data state
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -135,10 +135,12 @@ export default function DashboardScreen() {
     setTimeout(() => setAutoImportStatus(null), 3000);
   }, [smsReader.isSupported, categories, fetchData]);
 
-  // Load data on mount
+  // Load data on mount (only if authenticated)
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (isAuthenticated && !authLoading) {
+      fetchData();
+    }
+  }, [fetchData, isAuthenticated, authLoading]);
 
   // Auto-import after categories are loaded
   useEffect(() => {

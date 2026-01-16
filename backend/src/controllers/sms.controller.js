@@ -1,4 +1,4 @@
-import { parseTransactionSms, filterTransactionSms, getSmsParsingConfig } from '../services/sms.service.js';
+import { parseTransactionSms, filterTransactionSms, getSmsParsingConfig, classifySingleMessage } from '../services/sms.service.js';
 
 export const parseSmsMessages = async (req, res) => {
     try {
@@ -50,14 +50,11 @@ export const classifySingleSms = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Message string is required' });
         }
 
-        const transactions = await parseTransactionSms([{ body: message }]);
+        const result = await classifySingleMessage(message);
 
         return res.status(200).json({
             success: true,
-            data: {
-                isTransactional: transactions.length > 0,
-                transaction: transactions[0] || null,
-            },
+            data: result,
         });
     } catch (error) {
         console.error('[SMS] Classify error:', error.message);

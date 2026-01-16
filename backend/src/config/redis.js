@@ -33,6 +33,7 @@ export const initRedis = async () => {
 };
 
 export const getRedisClient = () => client;
+export const redisClient = { sendCommand: (...args) => client?.sendCommand(args) };
 
 export const isRedisConnected = () => isConnected;
 

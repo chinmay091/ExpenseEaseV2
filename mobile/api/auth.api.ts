@@ -48,6 +48,11 @@ export const refreshTokenApi = async (refreshToken: string): Promise<RefreshResp
 };
 
 export const logoutApi = async (accessToken: string, refreshToken?: string, logoutAll?: boolean): Promise<void> => {
+    if (!refreshToken && !logoutAll) {
+        // No refresh token to invalidate, just return (local cleanup will happen anyway)
+        return;
+    }
+    
     await api.post(
         "/auth/logout",
         { refreshToken, logoutAll },
@@ -58,3 +63,4 @@ export const logoutApi = async (accessToken: string, refreshToken?: string, logo
         }
     );
 };
+

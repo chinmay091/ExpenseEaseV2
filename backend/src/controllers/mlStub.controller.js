@@ -1,4 +1,4 @@
-import { mlPredictStub, getCategoryVolatilityThresholds, getSeasonalMultipliers } from "../services/mLStub.service.js";
+import { mlPredictStub, getCategoryVolatilityThresholds, getDefaultSeasonalMultipliers, learnSeasonalMultipliers } from "../services/mLStub.service.js";
 
 export const mlPredictController = async (req, res) => {
     try {
@@ -34,7 +34,7 @@ export const getConfigController = async (req, res) => {
             success: true,
             data: {
                 categoryThresholds: getCategoryVolatilityThresholds(),
-                seasonalMultipliers: getSeasonalMultipliers(),
+                seasonalMultipliers: getDefaultSeasonalMultipliers(),
             },
         });
     } catch (error) {

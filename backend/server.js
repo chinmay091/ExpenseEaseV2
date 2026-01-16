@@ -3,6 +3,7 @@ import { connectDB } from "./src/config/database.js";
 import { sequelize } from "./src/models/index.js";
 import { startJobScheduler } from "./src/jobs/jobScheduler.js";
 import { initRedis } from "./src/config/redis.js";
+import ip from "ip";
 
 const PORT = process.env.PORT || 3000;
 
@@ -27,10 +28,10 @@ const startServer = async () => {
 
   startJobScheduler();
 
-  app.listen(PORT, () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is running on PORT: ${PORT}`);
+    console.log(`📡 Local Network: http://${ip.address()}:${PORT}`);
   });
 };
 
 startServer();
-

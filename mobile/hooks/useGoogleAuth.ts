@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
+import Constants from "expo-constants";
 
 export type GoogleUser = {
   id: string;
@@ -16,15 +17,27 @@ export type GoogleAuthState = {
 
 let GoogleSignin: any = null;
 let statusCodes: any = null;
+let moduleLoadAttempted = false;
+
+const isExpoGo = Constants.appOwnership === "expo";
 
 const loadGoogleSignIn = async () => {
-  if (GoogleSignin) return;
+  if (moduleLoadAttempted) return GoogleSignin !== null;
+  moduleLoadAttempted = true;
+  
+  if (isExpoGo) {
+    console.warn("Google Sign-In is not available in Expo Go. Use a development build.");
+    return false;
+  }
+  
   try {
     const module = await import("@react-native-google-signin/google-signin");
     GoogleSignin = module.GoogleSignin;
     statusCodes = module.statusCodes;
+    return true;
   } catch (e) {
-    console.warn("Google Sign-In module not available");
+    console.warn("Google Sign-In module not available:", e);
+    return false;
   }
 };
 
@@ -36,11 +49,12 @@ export const useGoogleAuth = () => {
   });
   const [loading, setLoading] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(!isExpoGo);
 
   const configure = useCallback(async (webClientId?: string) => {
-    await loadGoogleSignIn();
-    if (!GoogleSignin) {
-      console.warn("Google Sign-In not available");
+    const loaded = await loadGoogleSignIn();
+    if (!loaded || !GoogleSignin) {
+      setIsAvailable(false);
       return false;
     }
 
@@ -60,8 +74,7 @@ export const useGoogleAuth = () => {
   }, []);
 
   const checkSignInStatus = useCallback(async () => {
-    await loadGoogleSignIn();
-    if (!GoogleSignin || !isConfigured) return;
+    if (!isAvailable || !GoogleSignin || !isConfigured) return;
 
     try {
       const response = await GoogleSignin.signInSilently();
@@ -81,11 +94,19 @@ export const useGoogleAuth = () => {
     } catch (error: any) {
       console.log("Not signed in silently");
     }
-  }, [isConfigured]);
+  }, [isConfigured, isAvailable]);
 
   const signIn = useCallback(async () => {
-    await loadGoogleSignIn();
-    if (!GoogleSignin) {
+    if (isExpoGo) {
+      Alert.alert(
+        "Not Available",
+        "Google Sign-In is not available in Expo Go. Please use a development build."
+      );
+      return null;
+    }
+
+    const loaded = await loadGoogleSignIn();
+    if (!loaded || !GoogleSignin) {
       Alert.alert("Error", "Google Sign-In is not available");
       return null;
     }
@@ -134,7 +155,6 @@ export const useGoogleAuth = () => {
   }, [isConfigured, configure]);
 
   const signOut = useCallback(async () => {
-    await loadGoogleSignIn();
     if (!GoogleSignin) return;
 
     try {
@@ -150,7 +170,6 @@ export const useGoogleAuth = () => {
   }, []);
 
   const getAccessToken = useCallback(async () => {
-    await loadGoogleSignIn();
     if (!GoogleSignin || !authState.isSignedIn) return null;
 
     try {
@@ -165,15 +184,16 @@ export const useGoogleAuth = () => {
   }, [authState.isSignedIn, signOut]);
 
   useEffect(() => {
-    if (isConfigured) {
+    if (isConfigured && isAvailable) {
       checkSignInStatus();
     }
-  }, [isConfigured, checkSignInStatus]);
+  }, [isConfigured, checkSignInStatus, isAvailable]);
 
   return {
     ...authState,
     loading,
     isConfigured,
+    isAvailable,
     configure,
     signIn,
     signOut,

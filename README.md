@@ -1,6 +1,6 @@
 # ExpenseEase 💰
 
-A full-stack personal finance assistant built with React Native (Expo) and Node.js, featuring JWT authentication, RESTful APIs, LLM-powered parsing, and real-time push notifications.
+A full-stack personal finance assistant built with React Native (Expo) and Node.js, featuring JWT authentication, RESTful APIs, LLM-powered parsing, ML-based SMS classification, and real-time push notifications.
 
 ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)
@@ -14,19 +14,22 @@ A full-stack personal finance assistant built with React Native (Expo) and Node.
 
 ### Expense Management
 - Full CRUD operations for transactions with category classification
+- Receipt scanning with OCR (CloudVault integration for storage)
 - Duplicate detection on import to prevent data redundancy
 - Soft delete pattern for data retention and recovery
 
 ### Automatic Budget Generation
 - Analyzes 3-6 months of spending history per category
-- Calculates spending trends (up/down/stable) and volatility scores
-- Applies dynamic buffer percentages based on spending consistency
-- Falls back to LLM (Google Gemini) for explanation generation when historical data is insufficient
+- **Dynamic seasonal multipliers** - Learns from user's own spending patterns
+- **Exponential Weighted Moving Average (EWMA)** - Recent months weighted higher
+- **Category-specific volatility thresholds** - Different expected variance per category
+- **Dynamic confidence scoring** - Based on data quality, not hardcoded
+- Falls back to LLM (Google Gemini) for explanation generation
 
 ### Data Import Pipeline
-- **SMS Parsing** - Regex patterns + LLM fallback for extracting amount, merchant, and date from bank SMS
-- **Gmail Import** - OAuth2 authentication, email fetching via Gmail API, LLM-based transaction extraction
-- **Receipt OCR** - Tesseract.js for text extraction, pattern matching for structured data
+- **SMS Parsing** - DistilBERT ML classifier (ONNX) + regex fallback for bank SMS
+- **Gmail Import** - OAuth2 authentication, email fetching via Gmail API, LLM-based extraction
+- **Receipt OCR** - Gemini Vision for text extraction, pattern matching for structured data
 
 ### Savings Goals
 - Goal tracking with target amount and deadline
@@ -44,7 +47,7 @@ A full-stack personal finance assistant built with React Native (Expo) and Node.
 - Settlement flow with debt simplification
 
 ### Smart Chat Assistant
-- Rule-based query processing for common financial questions (spending by category, recent transactions)
+- Rule-based query processing for common financial questions
 - LLM fallback for complex natural language queries
 - Context-aware responses using user's actual financial data
 
@@ -76,6 +79,16 @@ A full-stack personal finance assistant built with React Native (Expo) and Node.
 - Token blacklisting on logout
 - Automatic token refresh via Axios interceptors (frontend)
 
+### Rate Limiting
+| Endpoint | Limit | Window |
+|----------|-------|--------|
+| Chat | 10 requests | 1 minute |
+| LLM (global) | 15 requests | 1 minute |
+| Budget Gen | 3 requests | 5 minutes |
+| OCR | 10 requests | 1 minute |
+| SMS Parse | 5 requests | 1 minute |
+| Auth (login/signup) | 10 requests | 15 minutes |
+
 ### Database Design (PostgreSQL)
 ```
 User ──┬── Expense ──── Category
@@ -105,7 +118,14 @@ ANALYTICS: 1800s    // 30 minutes - analytics data
 ```
 - MD5 hashing for cache key generation
 - TTL-based automatic expiration
+- Rate limiter storage (persistent across restarts)
 - Graceful degradation when Redis unavailable
+
+### ML Integration
+| Model | Purpose | Format |
+|-------|---------|--------|
+| SMS Classifier | Transactional vs non-transactional SMS | DistilBERT (ONNX) |
+| Budget Prediction | Spending forecasting | Rule-based + EWMA |
 
 ### Background Jobs (Cron)
 | Schedule | Job | Description |
@@ -117,12 +137,6 @@ ANALYTICS: 1800s    // 30 minutes - analytics data
 | 9:00 AM | Budget Warnings | Alert users at 90% budget usage |
 | 10:00 AM Sun | Weekly Summary | Send spending summaries |
 
-### LLM Integration (Google Gemini 1.5 Flash)
-- **SMS/Email Parsing** - Structured JSON extraction from unstructured messages
-- **Budget Explanations** - Natural language reasoning for budget suggestions
-- **Chat Responses** - Fallback for queries not handled by rule-based system
-- **Insights Generation** - Spending pattern analysis and recommendations
-
 ---
 
 ## 🚀 Setup
@@ -130,15 +144,37 @@ ANALYTICS: 1800s    // 30 minutes - analytics data
 ### Prerequisites
 - Node.js 18+
 - PostgreSQL 14+
-- Redis (optional)
+- Redis (optional, for caching + rate limiting)
 - Google Cloud Project (for Gemini API + Gmail OAuth)
 
-### Backend
+### Quick Start with Docker
 ```bash
+# Clone the repo
+git clone https://github.com/chinmay091/ExpenseEaseV2.git
+cd ExpenseEaseV2
+
+# Create .env file (optional - defaults work for local dev)
+cp backend/env.example backend/.env
+
+# Start all services (PostgreSQL, Redis, Backend)
+docker-compose up -d
+
+# Backend runs at http://localhost:5000
+```
+
+### Manual Setup
+```bash
+# Backend
 cd backend
 npm install
 cp env.example .env
+npm run db:migrate
 npm run dev
+
+# Mobile
+cd mobile
+npm install
+npx expo start
 ```
 
 ### Environment Variables
@@ -154,7 +190,11 @@ JWT_REFRESH_SECRET=your_refresh_secret
 GOOGLE_API_KEY=your_gemini_api_key
 LLM_ENABLED=true
 
-# Caching (optional)
+# ML Model (SMS Classification)
+SMS_ML_MODEL_ENABLED=true
+SMS_ML_MODEL_PATH=../ML/sms_classifier.onnx
+
+# Caching + Rate Limiting
 REDIS_URL=redis://localhost:6379
 ```
 
