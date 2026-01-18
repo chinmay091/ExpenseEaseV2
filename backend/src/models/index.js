@@ -8,6 +8,7 @@ import { Goal, GoalContribution } from "./goal.model.js";
 import Device from "./device.model.js";
 import Bill from "./bill.model.js";
 import { Group, GroupMember, GroupExpense, Split } from "./group.model.js";
+import Job from "./job.model.js";
 
 User.hasMany(Expense, { foreignKey: "userId", onDelete: "CASCADE" });
 Expense.belongsTo(User, { foreignKey: "userId" });
@@ -42,10 +43,13 @@ Group.belongsTo(User, { foreignKey: "createdById", as: "creator" });
 User.hasMany(GroupMember, { foreignKey: "userId", as: "groupMemberships" });
 GroupMember.belongsTo(User, { foreignKey: "userId", as: "user" });
 
+User.hasMany(Job, { foreignKey: "userId", onDelete: "CASCADE" });
+Job.belongsTo(User, { foreignKey: "userId" });
+
 export {
     sequelize, User, Expense, Category, Budget, RefreshToken,
     Goal, GoalContribution, Device, Bill,
-    Group, GroupMember, GroupExpense, Split
+    Group, GroupMember, GroupExpense, Split, Job
 };
 
 

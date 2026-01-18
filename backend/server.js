@@ -5,6 +5,11 @@ import { startJobScheduler } from "./src/jobs/jobScheduler.js";
 import { initRedis } from "./src/config/redis.js";
 import ip from "ip";
 
+// Import workers to start them
+import "./src/workers/budget.worker.js";
+import "./src/workers/ocr.worker.js";
+import "./src/workers/insights.worker.js";
+
 const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {

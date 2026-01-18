@@ -18,6 +18,7 @@ import notificationRoutes from "./src/routes/notification.routes.js";
 import billRoutes from "./src/routes/bill.routes.js";
 import analyticsRoutes from "./src/routes/analytics.routes.js";
 import groupRoutes from "./src/routes/group.routes.js";
+import jobRoutes from "./src/routes/job.routes.js";
 import { authMiddleware } from "./src/middlewares/auth.middleware.js";
 
 const app = express();
@@ -44,6 +45,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/bills", billRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/groups", groupRoutes);
+app.use("/api/jobs", jobRoutes);
 app.use("/api/dev", devRoutes);
 app.use("/api/ml", mlRoutes);
 
