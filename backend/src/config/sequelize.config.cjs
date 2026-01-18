@@ -27,7 +27,7 @@ module.exports = {
         dialectOptions: {
             ssl: {
                 require: true,
-                rejectUnauthorized: false, // For most managed PostgreSQL services
+                rejectUnauthorized: false,
             },
         },
         pool: {

@@ -80,14 +80,6 @@ export const getGroupById = async (groupId, userId) => {
 };
 
 export const addMember = async ({ groupId, userId, name, email, phone }) => {
-    let member = await GroupMember.findOne({
-        where: { groupId, [Op.or]: [{ email }, { phone }] },
-    });
-
-    if (member) {
-        return { success: false, error: "MEMBER_EXISTS" };
-    }
-
     let linkedUserId = null;
     if (email) {
         const existingUser = await User.findOne({ where: { email } });
@@ -96,14 +88,27 @@ export const addMember = async ({ groupId, userId, name, email, phone }) => {
         }
     }
 
-    member = await GroupMember.create({
-        groupId,
-        userId: linkedUserId,
-        name,
-        email: email || null,
-        phone: phone || null,
-        status: linkedUserId ? "pending" : "joined",
+    const [member, created] = await GroupMember.findOrCreate({
+        where: {
+            groupId,
+            ...(linkedUserId
+                ? { userId: linkedUserId }
+                : { [Op.or]: [{ email }, { phone }].filter(Boolean) }
+            ),
+        },
+        defaults: {
+            groupId,
+            userId: linkedUserId,
+            name,
+            email: email || null,
+            phone: phone || null,
+            status: linkedUserId ? "pending" : "joined",
+        },
     });
+
+    if (!created) {
+        return { success: false, error: "MEMBER_EXISTS" };
+    }
 
     if (linkedUserId) {
         const group = await Group.findByPk(groupId);

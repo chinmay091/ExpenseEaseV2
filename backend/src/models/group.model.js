@@ -63,6 +63,14 @@ const GroupMember = sequelize.define("GroupMember", {
         type: DataTypes.DECIMAL(12, 2),
         defaultValue: 0,
     },
+}, {
+    indexes: [
+        {
+            unique: true,
+            fields: ["groupId", "userId"],
+            name: "unique_group_user",
+        },
+    ],
 });
 
 const GroupExpense = sequelize.define("GroupExpense", {
@@ -119,6 +127,14 @@ const Split = sequelize.define("Split", {
         type: DataTypes.DATE,
         allowNull: true,
     },
+}, {
+    indexes: [
+        {
+            unique: true,
+            fields: ["groupExpenseId", "memberId"],
+            name: "unique_expense_member_split",
+        },
+    ],
 });
 
 Group.hasMany(GroupMember, { foreignKey: "groupId", as: "members" });
