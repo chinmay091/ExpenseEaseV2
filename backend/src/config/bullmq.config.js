@@ -1,18 +1,18 @@
 import { Queue } from "bullmq";
 import Redis from "ioredis";
 
-// Redis connection
+// Redis connection for BullMQ
 const connection = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
-    maxRetriesPerRequest: null, // Required for BullMQ
+    maxRetriesPerRequest: null,
     enableReadyCheck: false,
 });
 
 connection.on("connect", () => {
-    console.log("[REDIS] Connected successfully");
+    console.log("[REDIS] BullMQ connected");
 });
 
 connection.on("error", (err) => {
-    console.error("[REDIS] Connection error:", err.message);
+    console.error("[REDIS] BullMQ error:", err.message);
 });
 
 // Queue definitions

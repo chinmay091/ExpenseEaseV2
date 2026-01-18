@@ -7,6 +7,7 @@ A full-stack personal finance assistant built with React Native (Expo) and Node.
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![BullMQ](https://img.shields.io/badge/BullMQ-FF6B6B?style=for-the-badge&logo=redis&logoColor=white)
 
 ---
 
@@ -29,7 +30,7 @@ A full-stack personal finance assistant built with React Native (Expo) and Node.
 ### Data Import Pipeline
 - **SMS Parsing** - DistilBERT ML classifier (ONNX) + regex fallback for bank SMS
 - **Gmail Import** - OAuth2 authentication, email fetching via Gmail API, LLM-based extraction
-- **Receipt OCR** - Gemini Vision for text extraction, pattern matching for structured data
+- **Receipt OCR** - Tesseract.js for text extraction, regex pattern matching for amounts/dates/merchants
 
 ### Savings Goals
 - Goal tracking with target amount and deadline
@@ -101,7 +102,9 @@ User ──┬── Expense ──── Category
 - Sequelize ORM with model associations
 - Foreign key constraints with cascade delete
 - Decimal precision for financial amounts
-- Indexed queries for performance
+- **Connection pooling** (max: 20, min: 5 connections)
+- **Performance indexes** on frequently queried columns
+- **Race condition prevention** via unique constraints and `findOrCreate`
 
 ### API Layer
 - **Controller-Service-Model** pattern for separation of concerns
@@ -127,7 +130,9 @@ ANALYTICS: 1800s    // 30 minutes - analytics data
 | SMS Classifier | Transactional vs non-transactional SMS | DistilBERT (ONNX) |
 | Budget Prediction | Spending forecasting | Rule-based + EWMA |
 
-### Background Jobs (Cron)
+### Background Jobs (BullMQ)
+Distributed job scheduling with Redis-backed persistence. Safe for multi-instance deployments.
+
 | Schedule | Job | Description |
 |----------|-----|-------------|
 | 12:00 AM | Budget Recalculation | Regenerate budgets for all users |
@@ -136,6 +141,15 @@ ANALYTICS: 1800s    // 30 minutes - analytics data
 | 8:00 AM | Bill Reminders | Send due date notifications |
 | 9:00 AM | Budget Warnings | Alert users at 90% budget usage |
 | 10:00 AM Sun | Weekly Summary | Send spending summaries |
+
+### Async Processing (BullMQ Workers)
+Heavy operations run in background workers for instant API responses:
+
+| Queue | Operation | Benefits |
+|-------|-----------|----------|
+| `budget-generation` | AI-powered budget creation | Instant response, push notification on complete |
+| `ocr-processing` | Receipt scanning with Tesseract | Non-blocking, handles large images |
+| `ai-insights` | LLM-based spending insights | Rate limit friendly, resilient |
 
 ---
 

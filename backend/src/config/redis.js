@@ -1,4 +1,4 @@
-import { createClient } from "redis";
+import Redis from "ioredis";
 import crypto from "crypto";
 
 let client = null;
@@ -11,7 +11,17 @@ export const initRedis = async () => {
     if (client) return client;
 
     try {
-        client = createClient({ url: REDIS_URL });
+        client = new Redis(REDIS_URL, {
+            maxRetriesPerRequest: null,
+            enableReadyCheck: false,
+            retryStrategy: (times) => {
+                if (times > 3) {
+                    console.warn("[REDIS] Retry limit reached");
+                    return null;
+                }
+                return Math.min(times * 100, 3000);
+            },
+        });
 
         client.on("error", (err) => {
             console.error("[REDIS] Connection error:", err.message);
@@ -23,7 +33,11 @@ export const initRedis = async () => {
             isConnected = true;
         });
 
-        await client.connect();
+        await new Promise((resolve, reject) => {
+            client.once("ready", resolve);
+            client.once("error", reject);
+        });
+
         return client;
     } catch (error) {
         console.error("[REDIS] Failed to connect:", error.message);
@@ -33,7 +47,10 @@ export const initRedis = async () => {
 };
 
 export const getRedisClient = () => client;
-export const redisClient = { sendCommand: (...args) => client?.sendCommand(args) };
+
+export const redisClient = {
+    sendCommand: (...args) => client?.call(...args),
+};
 
 export const isRedisConnected = () => isConnected;
 
@@ -63,7 +80,7 @@ export const setCache = async (prefix, key, value, ttl = DEFAULT_TTL) => {
 
     try {
         const cacheKey = `${prefix}:${hashKey(key)}`;
-        await client.setEx(cacheKey, ttl, JSON.stringify(value));
+        await client.setex(cacheKey, ttl, JSON.stringify(value));
         console.log(`[CACHE] Set: ${prefix} (TTL: ${ttl}s)`);
         return true;
     } catch (error) {
@@ -78,7 +95,7 @@ export const invalidateCache = async (prefix) => {
     try {
         const keys = await client.keys(`${prefix}:*`);
         if (keys.length > 0) {
-            await client.del(keys);
+            await client.del(...keys);
             console.log(`[CACHE] Invalidated ${keys.length} keys for ${prefix}`);
         }
     } catch (error) {
@@ -99,3 +116,5 @@ export const CACHE_TTL = {
     BUDGET_EXPLAIN: 3600,
     ANALYTICS: 1800,
 };
+
+export { client as ioredisClient };

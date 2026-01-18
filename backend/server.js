@@ -1,7 +1,7 @@
 import app from "./app.js";
 import { connectDB } from "./src/config/database.js";
 import { sequelize } from "./src/models/index.js";
-import { startJobScheduler } from "./src/jobs/jobScheduler.js";
+import { startScheduledJobs } from "./src/jobs/scheduledJobs.js";
 import { initRedis } from "./src/config/redis.js";
 import ip from "ip";
 
@@ -24,14 +24,18 @@ const startServer = async () => {
     console.log("🧱 Production mode - using migrations for schema management");
   }
 
-
   try {
     await initRedis();
   } catch (error) {
     console.warn("⚠️ Redis not available, caching disabled");
   }
 
-  startJobScheduler();
+  // Start BullMQ scheduled jobs (replaces cron)
+  try {
+    await startScheduledJobs();
+  } catch (error) {
+    console.warn("⚠️ Scheduled jobs failed to start:", error.message);
+  }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is running on PORT: ${PORT}`);
