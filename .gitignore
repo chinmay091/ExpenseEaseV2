@@ -60,6 +60,9 @@ mlruns/
 # ML Model directories (keep config files)
 ML/sms_model/model.safetensors
 ML/sms_model/checkpoint-*/
+ML/sms_model_3class/
+ML/new_model/
+ML/relabel_dataset.py
 
 # Jupyter
 .ipynb_checkpoints/

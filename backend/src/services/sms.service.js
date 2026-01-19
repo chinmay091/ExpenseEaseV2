@@ -1,8 +1,9 @@
 import { classifyByKeywords } from "../utils/categoryClassifier.util.js";
 import { loadVocab, isVocabLoaded, tokenize, tokensToIds, softmax } from "../utils/tokenizer.util.js";
 import { finalDecision, quickRegexCheck } from "../utils/smsDecision.util.js";
-import { detectTransactionType, extractEntities, buildDescription, getConfidenceLevel } from "../utils/smsParser.util.js";
-import { REGEX_PATTERNS, BANK_KEYWORDS, ML_CONFIG } from "../constants/smsPatterns.js";
+import { extractEntities, buildDescription, getConfidenceLevel } from "../utils/smsParser.util.js";
+import { REGEX_PATTERNS, BANK_KEYWORDS, ML_CONFIG, isOfficialBankSender } from "../constants/smsPatterns.js";
+import { isLLMEnabled } from "../utils/llm.util.js";
 import * as ort from "onnxruntime-node";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -68,16 +69,21 @@ const classifyWithMLModel = async (messages) => {
 
             const logits = Array.from(output.logits.data);
             const probs = softmax(logits);
-            const mlConfidence = probs[1];
 
-            const decision = finalDecision(mlConfidence, body);
+            // 3-class model: probs[0]=NotTransaction, probs[1]=Debit, probs[2]=Credit
+            const transactionProb = probs[1] + probs[2]; // Combined Debit + Credit probability
+            const mlTransactionType = probs[1] > probs[2] ? "debit" : "credit";
+
+            const decision = finalDecision(transactionProb, body);
 
             results.push({
                 is_transactional: decision.is_transactional,
                 confidence: decision.confidence,
-                transaction_type: decision.is_transactional ? detectTransactionType(body) : null,
+                // Use ML-predicted transaction type instead of regex-based detection
+                transaction_type: decision.is_transactional ? mlTransactionType : null,
                 entities: decision.is_transactional ? extractEntities(body) : null,
                 decision,
+                ml_probs: { notTransaction: probs[0], debit: probs[1], credit: probs[2] },
             });
         }
 
@@ -215,6 +221,18 @@ const parseWithRegex = (messages) => {
 export const filterTransactionSms = (messages) => {
     return messages.filter(msg => {
         const body = (msg.body || '').toLowerCase();
+        const sender = msg.address || msg.sender || '';
+
+        // Check if message is from an official bank sender
+        const isFromBank = isOfficialBankSender(sender);
+
+        // If sender validation is available and sender is not a bank, skip
+        if (sender && !isFromBank) {
+            console.log(`[SMS] Skipping message from non-bank sender: ${sender}`);
+            return false;
+        }
+
+        // Still check for bank keywords in the body
         return BANK_KEYWORDS.some(keyword => body.includes(keyword));
     });
 };

@@ -2,8 +2,9 @@ import { REGEX_PATTERNS, CREDIT_PATTERNS, DEBIT_PATTERNS } from "../constants/sm
 
 export const detectTransactionType = (text) => {
     const lower = text.toLowerCase();
-    if (CREDIT_PATTERNS.test(lower)) return "credit";
+    // Check DEBIT first - "DEBITED" is more explicit than balance notation like "Cr"
     if (DEBIT_PATTERNS.test(lower)) return "debit";
+    if (CREDIT_PATTERNS.test(lower)) return "credit";
     return "debit";
 };
 

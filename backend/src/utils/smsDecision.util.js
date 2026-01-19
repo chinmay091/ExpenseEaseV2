@@ -3,16 +3,19 @@ import {
     SOFT_NEGATIVES,
     STRONG_POSITIVES,
     ML_CONFIG,
+    CREDIT_PATTERNS,
+    DEBIT_PATTERNS,
 } from "../constants/smsPatterns.js";
 
 export const quickRegexCheck = (text) => {
     const hasAmount = /(?:rs|inr|₹)[\s.]*[\d,]+\.?\d*/i.test(text);
-    const hasDebitKeyword = /debited|spent|paid|sent|withdrawn|purchase|dr\b/i.test(text);
-    const hasCreditKeyword = /credited|received|refund|cashback|deposit|cr\b/i.test(text);
+    const hasDebitKeyword = DEBIT_PATTERNS.test(text);
+    const hasCreditKeyword = CREDIT_PATTERNS.test(text);
 
     return {
         is_transactional: hasAmount && (hasDebitKeyword || hasCreditKeyword),
-        type: hasCreditKeyword ? "credit" : "debit"
+        // Prioritize debit - "DEBITED" is more explicit
+        type: hasDebitKeyword ? "debit" : "credit"
     };
 };
 
