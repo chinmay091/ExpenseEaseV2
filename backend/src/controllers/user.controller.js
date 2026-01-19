@@ -5,6 +5,7 @@ import {
     getCurrentUser,
     getUserById,
     deleteCurrentUser,
+    setInitialBalance,
 } from "../services/user.service.js";
 
 export const createUserController = async (req, res) => {
@@ -17,7 +18,7 @@ export const createUserController = async (req, res) => {
                 message: "Name and email are required",
             });
         }
-        
+
         const user = await createUser({ name, email });
 
         return res.status(201).json({
@@ -84,9 +85,9 @@ export const getUserByIdController = async (req, res) => {
 export const deleteUserByIdController = async (req, res) => {
     try {
         const { id } = req.params;
-       
+
         const deletedUser = await deleteUserById(id);
-        
+
         if (!deletedUser) {
             return res.status(404).json({
                 success: false,
@@ -141,6 +142,42 @@ export const deleteCurrentUserController = async (req, res) => {
         return res.status(404).json({
             success: false,
             message: "User not found",
+        });
+    }
+};
+
+export const setInitialBalanceController = async (req, res) => {
+    try {
+        const { balance } = req.body;
+
+        if (balance === undefined || balance === null) {
+            return res.status(400).json({
+                success: false,
+                message: "Balance is required",
+            });
+        }
+
+        const numericBalance = parseFloat(balance);
+        if (isNaN(numericBalance) || numericBalance < 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Balance must be a valid non-negative number",
+            });
+        }
+
+        const user = await setInitialBalance(req.user.id, numericBalance);
+
+        return res.status(200).json({
+            success: true,
+            message: "Initial balance set successfully",
+            data: user,
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to set initial balance",
         });
     }
 };

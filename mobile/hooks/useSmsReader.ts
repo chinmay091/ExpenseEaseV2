@@ -63,7 +63,7 @@ export const useSmsReader = () => {
   }, [isSupported]);
 
   const readMessages = useCallback(
-    async (maxCount: number = 100): Promise<SmsMessage[]> => {
+    async (maxCount: number = 100, minDate?: Date): Promise<SmsMessage[]> => {
       if (!isSupported || !SmsModule) {
         Alert.alert(
           "Not Supported",
@@ -96,6 +96,8 @@ export const useSmsReader = () => {
           const filter = {
             box: "inbox",
             maxCount: maxCount,
+            // If minDate provided, pass it as timestamp for native filtering
+            ...(minDate && { minDate: minDate.getTime() }),
           };
 
           SmsModule.list(
@@ -108,12 +110,21 @@ export const useSmsReader = () => {
             },
             (_count: number, smsList: string) => {
               try {
-                const smsArray: SmsMessage[] = JSON.parse(smsList);
+                let smsArray: SmsMessage[] = JSON.parse(smsList);
+                
+                // Filter by minDate (in case native module doesn't support it)
+                if (minDate) {
+                  const minTimestamp = minDate.getTime();
+                  smsArray = smsArray.filter(msg => 
+                    msg.date && msg.date >= minTimestamp
+                  );
+                }
+                
                 setMessages(smsArray);
                 setLoading(false);
                 
                 if (smsArray.length === 0) {
-                  Alert.alert("No Messages", "No SMS messages found in your inbox.");
+                  Alert.alert("No Messages", "No SMS messages found after your signup date.");
                 }
                 
                 resolve(smsArray);

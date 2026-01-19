@@ -21,7 +21,15 @@ const User = sequelize.define(
     password: {
       type: DataTypes.STRING,
       defaultValue: null
-    }
+    },
+    initialBalance: {
+      type: DataTypes.DECIMAL(12, 2),
+      defaultValue: 0,
+    },
+    balanceSetAt: {
+      type: DataTypes.DATE,
+      defaultValue: null,
+    },
   },
   {
     tableName: "users",

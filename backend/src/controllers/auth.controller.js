@@ -23,6 +23,7 @@ export const signupController = async (req, res) => {
                     id: user.id,
                     name: user.name,
                     email: user.email,
+                    balanceSetAt: user.balanceSetAt,
                 }
             }
         });
@@ -66,6 +67,7 @@ export const loginController = async (req, res) => {
                     id: user.id,
                     name: user.name,
                     email: user.email,
+                    balanceSetAt: user.balanceSetAt,
                 },
             },
         });

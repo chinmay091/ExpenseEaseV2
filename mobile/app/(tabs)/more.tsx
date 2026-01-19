@@ -59,6 +59,12 @@ export default function MoreScreen() {
       description: "View detailed monthly reports",
       route: "/reports",
     },
+    {
+      icon: "gearshape.fill",
+      label: "Settings",
+      description: "Notifications, theme & preferences",
+      route: "/settings",
+    },
   ];
 
   const handleLogout = () => {

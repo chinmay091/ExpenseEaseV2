@@ -7,6 +7,7 @@ interface User {
     id: string;
     name: string;
     email: string;
+    balanceSetAt: string | null;
 }
 
 interface AuthContextType {

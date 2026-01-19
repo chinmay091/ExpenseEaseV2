@@ -127,6 +127,12 @@ export const getExpenseSummaryByUserId = async (userId, from, to) => {
     group: ["type"],
   });
 
+  // Get user's initial balance
+  const user = await User.findByPk(userId, {
+    attributes: ["initialBalance"],
+  });
+  const initialBalance = user ? Number(user.initialBalance) || 0 : 0;
+
   let totalCredit = 0;
   let totalDebit = 0;
 
@@ -138,7 +144,12 @@ export const getExpenseSummaryByUserId = async (userId, from, to) => {
     if (type === "debit") totalDebit = total;
   });
 
-  return { totalCredit, totalDebit, balance: totalCredit - totalDebit };
+  return {
+    totalCredit,
+    totalDebit,
+    initialBalance,
+    balance: initialBalance + totalCredit - totalDebit
+  };
 };
 
 export const getMonthlyExpenseSummaryByUserId = async (userId, year) => {

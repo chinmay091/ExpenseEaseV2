@@ -14,7 +14,7 @@ export const unstable_settings = {
 };
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -25,13 +25,23 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
+    const inOnboarding = (segments[0] as string) === 'onboarding';
 
-    if (!isAuthenticated && inAuthGroup) {
+    if (!isAuthenticated && (inAuthGroup || inOnboarding)) {
+      // Not authenticated, redirect to login
       router.replace('/login');
     } else if (isAuthenticated && (segments[0] === 'login' || segments[0] === 'signup')) {
-      router.replace('/(tabs)');
+      // Just logged in - check if onboarding needed
+      if (user && !user.balanceSetAt) {
+        router.replace('/onboarding' as any);
+      } else {
+        router.replace('/(tabs)');
+      }
+    } else if (isAuthenticated && inAuthGroup && user && !user.balanceSetAt) {
+      // In app but hasn't set balance yet
+      router.replace('/onboarding' as any);
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, user]);
 
   if (isLoading) {
     return (
@@ -46,6 +56,7 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="signup" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="bills" options={{ headerShown: false }} />
         <Stack.Screen name="analytics" options={{ headerShown: false }} />
@@ -53,6 +64,7 @@ function RootLayoutNav() {
         <Stack.Screen name="groups/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="import" options={{ headerShown: false }} />
         <Stack.Screen name="reports" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />

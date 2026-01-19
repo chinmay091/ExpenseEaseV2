@@ -8,6 +8,7 @@ import { parseSmsMessages, ParsedTransaction } from "@/api/sms.api";
 import { fetchGmailTransactions, GmailTransaction } from "@/api/gmail.api";
 import { createExpense, getExpenses, Expense } from "@/api/expense.api";
 import { getCategories, Category } from "@/api/category.api";
+import { getCurrentUser } from "@/api/user.api";
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 
@@ -32,22 +33,32 @@ export default function ImportScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [defaultCategoryId, setDefaultCategoryId] = useState<string | null>(null);
   
+  // User signup date for filtering
+  const [userCreatedAt, setUserCreatedAt] = useState<Date | null>(null);
+  
   // Current view - sms or gmail
   const [activeTab, setActiveTab] = useState<"sms" | "gmail">("sms");
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchInitialData = async () => {
       try {
-        const data = await getCategories();
-        setCategories(data);
-        if (data.length > 0) {
-          setDefaultCategoryId(data[0].id);
+        // Fetch categories
+        const categoryData = await getCategories();
+        setCategories(categoryData);
+        if (categoryData.length > 0) {
+          setDefaultCategoryId(categoryData[0].id);
+        }
+        
+        // Fetch user's createdAt for SMS filtering
+        const userData = await getCurrentUser();
+        if (userData.createdAt) {
+          setUserCreatedAt(new Date(userData.createdAt));
         }
       } catch (error) {
-        console.error("Failed to fetch categories", error);
+        console.error("Failed to fetch initial data", error);
       }
     };
-    fetchCategories();
+    fetchInitialData();
     
     // Configure Google Auth on mount
     googleAuth.configure();
@@ -62,18 +73,19 @@ export default function ImportScreen() {
 
     setSmsLoading(true);
     try {
-      const messages = await smsReader.readMessages(100);
+      // Pass userCreatedAt to filter messages from after signup
+      const messages = await smsReader.readMessages(100, userCreatedAt || undefined);
       if (messages.length > 0) {
         // Send to backend for parsing
         const result = await parseSmsMessages(messages);
         if (result.success && result.data) {
           setSmsTransactions(result.data.transactions);
           if (result.data.transactions.length === 0) {
-            Alert.alert("No Transactions", "No transaction messages found in your SMS.");
+            Alert.alert("No Transactions", "No transaction messages found in your recent SMS.");
           }
         }
       } else {
-        Alert.alert("No Messages", "No SMS messages found.");
+        Alert.alert("No Messages", "No SMS messages found after your signup date.");
       }
     } catch (error) {
       console.error("SMS read error:", error);

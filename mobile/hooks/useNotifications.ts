@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import { registerPushToken } from '../api/notification.api';
 import { useAuth } from '../context/AuthContext';
 
@@ -111,14 +112,30 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
 function handleNotificationResponse(data: Record<string, unknown>) {
   const type = data.type as string;
   
-  switch (type) {
-    case 'budget_warning':
-      break;
-    case 'bill_reminder':
-      break;
-    case 'anomaly':
-      break;
-    case 'weekly_summary':
-      break;
-  }
+  // Small delay to ensure app is ready for navigation
+  setTimeout(() => {
+    switch (type) {
+      case 'budget_warning':
+        router.push('/(tabs)/budgets');
+        break;
+      case 'bill_reminder':
+        router.push('/bills');
+        break;
+      case 'anomaly':
+        router.push('/(tabs)/expenses');
+        break;
+      case 'weekly_summary':
+        router.push('/reports');
+        break;
+      case 'job_complete':
+        if (data.jobType === 'insights') {
+          router.push('/analytics');
+        }
+        break;
+      default:
+        // For unknown notification types, navigate to home
+        console.log('[Notifications] Unknown notification type:', type);
+        break;
+    }
+  }, 100);
 }
