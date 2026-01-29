@@ -96,3 +96,6 @@ coverage/
 *.tmp
 *.temp
 *.bak
+
+technical_deep_dive.md.resolved
+interview_prep_expenseease.md.resolved

@@ -1,32 +1,54 @@
-import axios from "axios";
+/**
+ * ML Client Service - Budget Prediction
+ * Uses embedded LSTM ONNX model for predictions
+ */
 
-export const getMlSignals = async ({
-    userId,
-    category,
-    history,
-}) => {
+import { predictBudget } from "./budgetLstm.service.js";
+import { mlPredictStub } from "./mlStub.service.js";
+
+export const getMlSignals = async ({ userId, category, history }) => {
+    const formattedHistory = history.map(h => ({
+        ds: h.month,
+        y: h.amount
+    }));
+
     try {
-    const res = await axios.post("http://localhost:5000/api/ml/predict", {
-        userId,
-        category,
-        currency: "INR",
-        history,
-    });
+        const result = await predictBudget(formattedHistory);
 
-    if (!res.data?.success) return null;
+        console.log("[ML] LSTM response:", {
+            category,
+            predicted_spend: result.predicted_spend,
+            trend: result.trend,
+            confidence: result.confidence,
+            method: result.method
+        });
 
-    const { predicted_spend, volatility_score, trend, confidence } = res.data.data;
+        if (result.confidence < 0.4) {
+            console.log("[ML] Discarded due to low confidence:", result.confidence);
+            return null;
+        }
 
-    console.log("ML response before filter:", res.data.data);
+        return {
+            predicted_spend: result.predicted_spend,
+            volatility_score: result.volatility_score,
+            trend: result.trend
+        };
 
-    if (confidence < 0.4) {
-        console.log("ML discarded due to low confidence");
-        return null
+    } catch (error) {
+        console.warn("[ML] LSTM error:", error.message);
+        return useFallback(history, category);
+    }
+};
+
+const useFallback = (history, category) => {
+    console.log("[ML] Using mlStub fallback for:", category);
+    const result = mlPredictStub({ history, category });
+
+    if (result.confidence < 0.4) return null;
+
+    return {
+        predicted_spend: result.predicted_spend,
+        volatility_score: result.volatility_score,
+        trend: result.trend
     };
-
-    return { predicted_spend, volatility_score, trend };
-} catch (error) {
-    console.warn("ML unavailable, falling back to rules");
-    return null;
-}
 };

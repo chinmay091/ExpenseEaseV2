@@ -1,0 +1,8 @@
+# Requirements for retraining the LSTM model
+# Run: pip install -r requirements.txt
+torch>=2.0.0
+pandas
+numpy
+scikit-learn
+onnx
+onnxscript

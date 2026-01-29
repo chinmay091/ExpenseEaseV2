@@ -128,7 +128,7 @@ ANALYTICS: 1800s    // 30 minutes - analytics data
 | Model | Purpose | Format |
 |-------|---------|--------|
 | SMS Classifier | Transactional vs non-transactional SMS | DistilBERT (ONNX) |
-| Budget Prediction | Spending forecasting | Rule-based + EWMA |
+| Budget Predictor | Spending forecasting with trends & seasonality | Prophet (Python microservice) |
 
 ### Background Jobs (BullMQ)
 Distributed job scheduling with Redis-backed persistence. Safe for multi-instance deployments.
