@@ -203,12 +203,27 @@ export const checkAnomalies = async (userId, expense) => {
     const avgAmount = Number(avgResult?.get("avgAmount")) || 0;
     const currentAmount = Number(expense.amount);
 
-    if (avgAmount > 0 && currentAmount > avgAmount * 3) {
-        const category = await Category.findByPk(expense.categoryId);
+    // Dynamic threshold based on category volatility
+    const category = await Category.findByPk(expense.categoryId);
+    const categoryName = category?.name || "";
+
+    const CATEGORY_THRESHOLDS = {
+        "Bills": 2,           // Stable - flag at 2x
+        "Subscriptions": 2,   // Stable
+        "Food": 3,            // Normal
+        "Transport": 3,       // Normal
+        "Shopping": 3.5,      // Slightly volatile
+        "Entertainment": 3.5, // Slightly volatile
+        "Healthcare": 4,      // Volatile (medical emergencies)
+        "Travel": 5,          // Very volatile (trips vary widely)
+    };
+    const threshold = CATEGORY_THRESHOLDS[categoryName] || 3;
+
+    if (avgAmount > 0 && currentAmount > avgAmount * threshold) {
         await sendPushNotification(
             userId,
             "🔔 Unusual Transaction",
-            `₹${currentAmount.toLocaleString()} on ${category?.name || "this category"} is ${Math.round(currentAmount / avgAmount)}x your average`,
+            `₹${currentAmount.toLocaleString()} on ${categoryName || "this category"} is ${Math.round(currentAmount / avgAmount)}x your average`,
             { type: "anomaly", expenseId: expense.id }
         );
         return true;

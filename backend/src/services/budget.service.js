@@ -144,7 +144,7 @@ const getCategoryNameMap = async () => {
 
 export const generateBudgetsForUser = async ({
   userId,
-  months = 3,
+  months = 12,
   bufferPercent = 10,
 }) => {
   const endDate = new Date();
@@ -218,7 +218,7 @@ export const generateBudgetsForUser = async ({
       ? calculateWeightedAverage(history)
       : totalSpent / months;
 
-    let suggested = avgMonthly * (1 + bufferPercent / 100);
+
 
     const mlSignals = await getMlSignals({
       userId,
@@ -226,15 +226,21 @@ export const generateBudgetsForUser = async ({
       history,
     });
 
+    // Dynamic buffer based on volatility (5-20% range)
+    const dynamicBuffer = mlSignals
+      ? 5 + Math.round(mlSignals.volatility_score * 15)  // 5% base + up to 15% for high volatility
+      : bufferPercent;
+
+    let suggested = avgMonthly * (1 + dynamicBuffer / 100);
+
     if (mlSignals) {
-      const { predicted_spend, volatility_score, trend } = mlSignals;
+      const { predicted_spend, trend } = mlSignals;
 
-      const volatilityMultiplier = volatility_score > 0.5 ? 0.2 : 0.1;
-      suggested += avgMonthly * volatility_score * volatilityMultiplier;
-
+      // Adjust for trend direction
       if (trend === "up") suggested *= 1.08;
       if (trend === "down") suggested *= 0.95;
 
+      // Never go below ML prediction
       suggested = Math.max(suggested, predicted_spend);
     }
 

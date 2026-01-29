@@ -40,7 +40,7 @@ export const getAnalytics = async (userId) => {
         lastMonthData.categories
     );
 
-    const trend = await getSpendingTrend(userId, 6);
+    const trend = await getSpendingTrend(userId, 12);
 
     const insights = await generateInsights(userId, {
         comparison,

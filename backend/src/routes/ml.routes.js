@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { mlPredictController, getConfigController } from "../controllers/mlStub.controller.js";
+import { mlPredictController, getConfigController } from "../controllers/ml.controller.js";
 import { classifySingleMessage, getSmsParsingConfig } from "../services/sms.service.js";
 
 const router = Router();

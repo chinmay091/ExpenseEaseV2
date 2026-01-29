@@ -1,10 +1,9 @@
 /**
  * ML Client Service - Budget Prediction
- * Uses embedded LSTM ONNX model for predictions
+ * Uses embedded LSTM ONNX model with built-in EWMA fallback
  */
 
-import { predictBudget } from "./budgetLstm.service.js";
-import { mlPredictStub } from "./mlStub.service.js";
+import { predictBudget, getBudgetLstmConfig } from "./budgetLstm.service.js";
 
 export const getMlSignals = async ({ userId, category, history }) => {
     const formattedHistory = history.map(h => ({
@@ -15,7 +14,7 @@ export const getMlSignals = async ({ userId, category, history }) => {
     try {
         const result = await predictBudget(formattedHistory);
 
-        console.log("[ML] LSTM response:", {
+        console.log("[ML] Response:", {
             category,
             predicted_spend: result.predicted_spend,
             trend: result.trend,
@@ -24,7 +23,7 @@ export const getMlSignals = async ({ userId, category, history }) => {
         });
 
         if (result.confidence < 0.4) {
-            console.log("[ML] Discarded due to low confidence:", result.confidence);
+            console.log("[ML] Discarded low confidence:", result.confidence);
             return null;
         }
 
@@ -35,20 +34,9 @@ export const getMlSignals = async ({ userId, category, history }) => {
         };
 
     } catch (error) {
-        console.warn("[ML] LSTM error:", error.message);
-        return useFallback(history, category);
+        console.warn("[ML] Error:", error.message);
+        return null;
     }
 };
 
-const useFallback = (history, category) => {
-    console.log("[ML] Using mlStub fallback for:", category);
-    const result = mlPredictStub({ history, category });
-
-    if (result.confidence < 0.4) return null;
-
-    return {
-        predicted_spend: result.predicted_spend,
-        volatility_score: result.volatility_score,
-        trend: result.trend
-    };
-};
+export const getMlConfig = () => getBudgetLstmConfig();
