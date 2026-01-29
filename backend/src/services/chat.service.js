@@ -143,7 +143,7 @@ const getGoalProgress = async (userId) => {
     });
 };
 
-const getSpendingTrend = async (userId, months = 6) => {
+const getSpendingTrend = async (userId, months = 12) => {
     const end = new Date();
     const start = new Date();
     start.setMonth(end.getMonth() - months);
@@ -221,7 +221,7 @@ const buildUserContext = async (userId) => {
         getCategoryBreakdown(userId),
         getBudgetStatus(userId),
         getGoalProgress(userId),
-        getSpendingTrend(userId, 3),
+        getSpendingTrend(userId, 6),
         getMonthlyIncome(userId),
     ]);
 
